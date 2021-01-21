@@ -24,6 +24,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * 辅助构造 URL
+ */
 public final class URLBuilder {
     private String protocol;
 

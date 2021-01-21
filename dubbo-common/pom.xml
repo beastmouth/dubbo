@@ -27,7 +27,7 @@
     <artifactId>dubbo-common</artifactId>
     <packaging>jar</packaging>
     <name>${project.artifactId}</name>
-    <description>The common module of dubbo project</description>
+    <description>Dubbo 的一个公共模块，其中有很多工具类以及公共逻辑，例如 Dubbo SPI 实现、时间轮实现、动态编译器等</description>
     <properties>
         <skip_maven_deploy>false</skip_maven_deploy>
     </properties>

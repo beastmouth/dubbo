@@ -29,6 +29,7 @@ import org.apache.dubbo.common.extension.SPI;
 public interface RegistryFactory {
 
     /**
+     * 说明这是一个适配器方法，Dubbo 在运行时会为其动态生成相应的 “$Adaptive” 类型
      * Connect to the registry
      * <p>
      * Connecting the registry needs to support the contract: <br>

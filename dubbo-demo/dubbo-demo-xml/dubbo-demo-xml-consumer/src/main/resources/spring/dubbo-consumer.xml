@@ -28,8 +28,10 @@
 
     <!--    <dubbo:metadata-report address="zookeeper://127.0.0.1:2181"/>-->
 
+    <!-- Zookeeper地址 -->
     <dubbo:registry address="zookeeper://127.0.0.1:2181"/>
 
+    <!-- 使用dubbo:reference引入DemoService服务，并配置成Spring Bean -->
     <dubbo:reference provided-by="demo-provider" id="demoService" check="false"
                      interface="org.apache.dubbo.demo.DemoService"/>
 
