@@ -458,6 +458,7 @@ public class ExtensionLoader<T> {
         final Holder<Object> holder = getOrCreateHolder(name);
         Object instance = holder.get();
         if (instance == null) {
+            // double-check防止并发问题
             synchronized (holder) {
                 instance = holder.get();
                 if (instance == null) {
