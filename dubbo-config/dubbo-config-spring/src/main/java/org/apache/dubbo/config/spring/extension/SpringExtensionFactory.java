@@ -29,6 +29,7 @@ import org.springframework.context.ConfigurableApplicationContext;
 import java.util.Set;
 
 /**
+ * 将属性名称作为 Spring Bean 的名称，从 Spring 容器中获取 Bean
  * SpringExtensionFactory
  */
 public class SpringExtensionFactory implements ExtensionFactory {
@@ -61,11 +62,13 @@ public class SpringExtensionFactory implements ExtensionFactory {
     public <T> T getExtension(Class<T> type, String name) {
 
         //SPI should be get from SpiExtensionFactory
+        // 检查:type必须为接口且必须包含@SPI注解(略)
         if (type.isInterface() && type.isAnnotationPresent(SPI.class)) {
             return null;
         }
 
         for (ApplicationContext context : CONTEXTS) {
+            // 从Spring容器中查找Bean
             T bean = BeanFactoryUtils.getOptionalBean(context, name, type);
             if (bean != null) {
                 return bean;
