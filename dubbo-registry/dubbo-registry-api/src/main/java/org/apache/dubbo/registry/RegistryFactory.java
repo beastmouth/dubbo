@@ -22,6 +22,7 @@ import org.apache.dubbo.common.extension.SPI;
 
 /**
  * RegistryFactory. (SPI, Singleton, ThreadSafe)
+ * 每个 Registry 实现类都有对应的 RegistryFactory 工厂实现，每个 RegistryFactory 工厂实现只负责创建对应的 Registry 对象。
  *
  * @see org.apache.dubbo.registry.support.AbstractRegistryFactory
  */

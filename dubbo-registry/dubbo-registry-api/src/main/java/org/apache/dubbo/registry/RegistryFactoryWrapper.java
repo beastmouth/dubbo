@@ -32,6 +32,7 @@ public class RegistryFactoryWrapper implements RegistryFactory {
     @Override
     public Registry getRegistry(URL url) {
         return new ListenerRegistryWrapper(registryFactory.getRegistry(url),
+                // 维护了一个 RegistryServiceListener 集合，会将 register()、subscribe() 等事件通知到 RegistryServiceListener 监听器。
                 Collections.unmodifiableList(ExtensionLoader.getExtensionLoader(RegistryServiceListener.class)
                         .getActivateExtension(url, "registry.listeners")));
     }

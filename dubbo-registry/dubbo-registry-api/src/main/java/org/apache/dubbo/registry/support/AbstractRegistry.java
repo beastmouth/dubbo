@@ -66,6 +66,7 @@ import static org.apache.dubbo.registry.Constants.REGISTRY_FILESAVE_SYNC_KEY;
 import static org.apache.dubbo.registry.Constants.REGISTRY__LOCAL_FILE_CACHE_ENABLED;
 
 /**
+ * 在内存中实现了注册数据的读写功能
  * AbstractRegistry. (SPI, Prototype, ThreadSafe)
  */
 public abstract class AbstractRegistry implements Registry {
@@ -163,6 +164,7 @@ public abstract class AbstractRegistry implements Registry {
     }
 
     public void doSaveProperties(long version) {
+        // 为了减轻注册中心组件的压力，AbstractRegistry 会把当前节点订阅的 URL 信息缓存到本地的 Properties 文件中
         if (version < lastCacheChanged.get()) {
             return;
         }
@@ -387,11 +389,12 @@ public abstract class AbstractRegistry implements Registry {
     /**
      * Notify changes from the Provider side.
      *
-     * @param url      consumer side url
-     * @param listener listener
-     * @param urls     provider latest urls
+     * @param url      consumer side url Consumer
+     * @param listener listener 第一个参数对应的监听器
+     * @param urls     provider latest urls Provider端暴露的URL的全量数据
      */
     protected void notify(URL url, NotifyListener listener, List<URL> urls) {
+        // 一系列边界条件的检查
         if (url == null) {
             throw new IllegalArgumentException("notify url == null");
         }
@@ -409,7 +412,9 @@ public abstract class AbstractRegistry implements Registry {
         // keep every provider's category.
         Map<String, List<URL>> result = new HashMap<>();
         for (URL u : urls) {
+            // 需要Consumer URL与Provider URL匹配，具体匹配规则后面详述
             if (UrlUtils.isMatch(url, u)) {
+                // 根据Provider URL中的category参数进行分类
                 String category = u.getParameter(CATEGORY_KEY, DEFAULT_CATEGORY);
                 List<URL> categoryList = result.computeIfAbsent(category, k -> new ArrayList<>());
                 categoryList.add(u);
@@ -422,15 +427,19 @@ public abstract class AbstractRegistry implements Registry {
         for (Map.Entry<String, List<URL>> entry : result.entrySet()) {
             String category = entry.getKey();
             List<URL> categoryList = entry.getValue();
+            // 更新notified
             categoryNotified.put(category, categoryList);
+            // 调用NotifyListener
             listener.notify(categoryList);
             // We will update our cache file after each notification.
             // When our Registry has a subscribe failure due to network jitter, we can return at least the existing cache URL.
+            // 更新properties集合以及底层的文件缓存
             saveProperties(url);
         }
     }
 
     private void saveProperties(URL url) {
+        // 会取出 Consumer 订阅的各个分类的 URL 连接起来（中间以空格分隔）
         if (file == null) {
             return;
         }
@@ -450,6 +459,7 @@ public abstract class AbstractRegistry implements Registry {
             }
             properties.setProperty(url.getServiceKey(), buf.toString());
             long version = lastCacheChanged.incrementAndGet();
+            // 本地缓存文件的具体路径 /.dubbo/dubbo-registry-[当前应用名]-[当前Registry所在的IP地址].cache
             if (syncSaveFile) {
                 doSaveProperties(version);
             } else {
