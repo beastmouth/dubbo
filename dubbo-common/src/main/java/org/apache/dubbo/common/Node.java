@@ -17,7 +17,7 @@
 package org.apache.dubbo.common;
 
 /**
- * 节点
+ * 节点 不仅可以表示Provider，Consumer，还可以表示注册中心节点
  * Node. (API/SPI, Prototype, ThreadSafe)
  */
 public interface Node {

@@ -21,6 +21,10 @@ import org.apache.dubbo.common.extension.Adaptive;
 import org.apache.dubbo.common.extension.SPI;
 import org.apache.dubbo.remoting.Constants;
 
+/**
+ * ZookeeperTransporter 只负责一件事情，那就是创建 ZookeeperClient 对象。
+ * 我们可以通过 URL 参数中的 client 或 transporter 参数覆盖 @SPI 注解指定的默认扩展名）
+ */
 @SPI("curator")
 public interface ZookeeperTransporter {
 

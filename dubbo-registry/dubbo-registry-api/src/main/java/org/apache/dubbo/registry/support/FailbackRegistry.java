@@ -93,12 +93,14 @@ public abstract class FailbackRegistry extends AbstractRegistry {
     private void addFailedRegistered(URL url) {
         FailedRegisteredTask oldOne = failedRegistered.get(url);
         if (oldOne != null) {
+            // 已经存在重试任务，则无须创建，直接返回
             return;
         }
         FailedRegisteredTask newTask = new FailedRegisteredTask(url, this);
         oldOne = failedRegistered.putIfAbsent(url, newTask);
         if (oldOne == null) {
             // never has a retry task. then start a new task for retry.
+            // 如果是新建的重试任务，则提交到时间轮中，等待retryPeriod毫秒后执行
             retryTimer.newTimeout(newTask, retryPeriod, TimeUnit.MILLISECONDS);
         }
     }
@@ -195,19 +197,24 @@ public abstract class FailbackRegistry extends AbstractRegistry {
     @Override
     public void register(URL url) {
         if (!acceptable(url)) {
+            // 打印相关的提示日志
             logger.info("URL " + url + " will not be registered to Registry. Registry " + url + " does not accept service of this protocol type.");
             return;
         }
+        // 完成本地文件缓存的初始化
         super.register(url);
+        // 清理failedRegistered集合和failedUnregistered集合，并取消相关任务
         removeFailedRegistered(url);
         removeFailedUnregistered(url);
         try {
             // Sending a registration request to the server side
+            // 与服务发现组件进行交互，具体由子类实现
             doRegister(url);
         } catch (Exception e) {
             Throwable t = e;
 
             // If the startup detection is opened, the Exception is thrown directly.
+            // 检测check参数，决定是否直接抛出异常
             boolean check = getUrl().getParameter(Constants.CHECK_KEY, true)
                     && url.getParameter(Constants.CHECK_KEY, true)
                     && !CONSUMER_PROTOCOL.equals(url.getProtocol());
@@ -222,6 +229,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
             }
 
             // Record a failed registration request to a failed list, retry regularly
+            // 如果不抛出异常，则创建失败重试的任务，并添加到failedRegistered集合中
             addFailedRegistered(url);
         }
     }

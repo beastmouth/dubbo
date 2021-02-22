@@ -20,12 +20,16 @@ import org.apache.dubbo.common.Node;
 import org.apache.dubbo.common.URL;
 
 /**
+ * 同时继承Node和RegistryService，代表他是一个拥有注册中心能力的节点
  * Registry. (SPI, Prototype, ThreadSafe)
  *
  * @see org.apache.dubbo.registry.RegistryFactory#getRegistry(URL)
  * @see org.apache.dubbo.registry.support.AbstractRegistry
  */
 public interface Registry extends Node, RegistryService {
+    /**
+     * reExportRegister 和 reExportUnregister 都委托给 RegistryService 里面的相应方法实现
+     */
     default void reExportRegister(URL url) {
         register(url);
     }

@@ -47,6 +47,9 @@ public abstract class AbstractZookeeperTransporter implements ZookeeperTransport
      * <p>
      * Make sure the connection is connected.
      *
+     * 缓存 ZookeeperClient 实例；
+     * 在某个 Zookeeper 节点无法连接时，切换到备用 Zookeeper 地址。
+     *
      * @param url
      * @return
      */

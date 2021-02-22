@@ -17,6 +17,7 @@
 package org.apache.dubbo.common.timer;
 
 /**
+ * 通过Timeout，我们不仅可以查看定时任务的状态，还可以操作定时任务
  * A handle associated with a {@link TimerTask} that is returned by a
  * {@link Timer}.
  */

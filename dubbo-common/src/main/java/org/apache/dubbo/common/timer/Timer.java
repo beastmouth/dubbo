@@ -21,6 +21,9 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
+ * Timer 接口定义了定时器的基本行为
+ * 在 Dubbo 中，时间轮并不直接用于周期性操作，而是只向时间轮提交执行单次的定时任务，
+ * 在上一次任务执行完成的时候，调用 newTimeout() 方法再次提交当前任务，这样就会在下个周期执行该任务。
  * Schedules {@link TimerTask}s for one-time future execution in a background
  * thread.
  */
