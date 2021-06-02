@@ -1,0 +1,2 @@
+qq=org.apache.dubbo.demo.consumer.spi.impl.QQLogin
+wechat=org.apache.dubbo.demo.consumer.spi.impl.WechatLogin
