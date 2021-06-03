@@ -188,18 +188,22 @@ public class ExtensionLoader<T> {
         if (type == null) {
             throw new IllegalArgumentException("Extension type == null");
         }
+        // 扩展点必须是接口
         if (!type.isInterface()) {
             throw new IllegalArgumentException("Extension type (" + type + ") is not an interface!");
         }
+        // 必须要有@SPI注解
         if (!withExtensionAnnotation(type)) {
             throw new IllegalArgumentException("Extension type (" + type +
                     ") is not an extension, because it is NOT annotated with @" + SPI.class.getSimpleName() + "!");
         }
 
-        // 获取对应的某个类的类加载器
+        // ExtensionLoader 负责扩展点的加载
+        // 从缓存中根据接口获取对应的ExtensionLoader
+        // 每个扩展只会被加载一次
         ExtensionLoader<T> loader = (ExtensionLoader<T>) EXTENSION_LOADERS.get(type);
         if (loader == null) {
-            // 不存在，则放一个新的进去
+            // 初始化扩展
             EXTENSION_LOADERS.putIfAbsent(type, new ExtensionLoader<T>(type));
             loader = (ExtensionLoader<T>) EXTENSION_LOADERS.get(type);
         }
@@ -471,6 +475,7 @@ public class ExtensionLoader<T> {
         }
         // getOrCreateHolder()方法中封装了查找cachedInstances缓存的逻辑
         final Holder<Object> holder = getOrCreateHolder(name);
+        // 从缓存中获取，不存在则创建
         Object instance = holder.get();
         if (instance == null) {
             // double-check防止并发问题
@@ -676,17 +681,25 @@ public class ExtensionLoader<T> {
     }
 
     @SuppressWarnings("unchecked")
+    /**
+     * 1.先根据name来得到对应的扩展类。从ClassPath下META-INF文件夹下读取扩展点配置文件。
+     * 2.使用反射创建一个扩展类的实例
+     * 3.对扩展类实例的属性进行依赖注入，即IOC。
+     * 4.如果有wrapper，添加wrapper。即AOP。
+     */
     private T createExtension(String name, boolean wrap) {
         // 获取 cachedClasses 缓存，根据扩展名从 cachedClasses 缓存中获取扩展实现类。
         // 如果 cachedClasses 未初始化，则会扫描前面介绍的三个 SPI 目录获取查找相应的 SPI 配置文件，
         // 然后加载其中的扩展实现类，最后将扩展名和扩展实现类的映射关系记录到 cachedClasses 缓存中。
         // 这部分逻辑在 loadExtensionClasses() 和 loadDirectory() 方法中。
+
+        // 根据扩展点名称得到扩展类，比如对于LoadBalance，根据random得到RandomLoadBalance类
         Class<?> clazz = getExtensionClasses().get(name);
         if (clazz == null) {
             throw findException(name);
         }
         try {
-            // 根据扩展实现类从 EXTENSION_INSTANCES 缓存中查找相应的实例。如果查找失败，会通过反射创建扩展实现对象。
+            // 根据扩展实现类从 EXTENSION_INSTANCES 缓存中查找相应的实例。如果查找不到，会通过反射创建扩展实现对象。
             T instance = (T) EXTENSION_INSTANCES.get(clazz);
             if (instance == null) {
                 EXTENSION_INSTANCES.putIfAbsent(clazz, clazz.newInstance());
@@ -695,7 +708,7 @@ public class ExtensionLoader<T> {
             // 自动装配扩展实现对象中的属性（即调用其 setter）。这里涉及 ExtensionFactory 以及自动装配的相关内容，
             injectExtension(instance);
 
-
+            // 如果有wrap，则添加wrap
             if (wrap) {
 
                 List<Class<?>> wrapperClassesList = new ArrayList<>();

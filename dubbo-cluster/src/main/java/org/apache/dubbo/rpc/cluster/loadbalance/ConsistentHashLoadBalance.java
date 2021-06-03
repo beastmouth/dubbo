@@ -51,6 +51,7 @@ public class ConsistentHashLoadBalance extends AbstractLoadBalance {
     @Override
     protected <T> Invoker<T> doSelect(List<Invoker<T>> invokers, URL url, Invocation invocation) {
         String methodName = RpcUtils.getMethodName(invocation);
+        // serviceKey + methodName
         String key = invokers.get(0).getUrl().getServiceKey() + "." + methodName;
         // using the hashcode of list to compute the hash only pay attention to the elements in the list
         int invokersHashCode = invokers.hashCode();
@@ -95,8 +96,11 @@ public class ConsistentHashLoadBalance extends AbstractLoadBalance {
         }
 
         public Invoker<T> select(Invocation invocation) {
+            // 将参数取出，拼接，作为key
             String key = toKey(invocation.getArguments());
+            // 计算md5
             byte[] digest = Bytes.getMD5(key);
+            // 计算hash，并取出hash适配的invoker
             return selectForKey(hash(digest, 0));
         }
 
@@ -111,6 +115,7 @@ public class ConsistentHashLoadBalance extends AbstractLoadBalance {
         }
 
         private Invoker<T> selectForKey(long hash) {
+            // 获取hash对应的invoker，如果不存在，则获取大于hash的下一个invoker
             Map.Entry<Long, Invoker<T>> entry = virtualInvokers.ceilingEntry(hash);
             if (entry == null) {
                 entry = virtualInvokers.firstEntry();
