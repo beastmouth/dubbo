@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
+ * 默认DubboProtocol实现
  * Protocol. (API/SPI, Singleton, ThreadSafe)
  */
 @SPI("dubbo")
@@ -31,6 +32,7 @@ public interface Protocol {
 
     /**
      * Get default port when user doesn't config the port.
+     * 默认端口
      *
      * @return default port
      */
@@ -43,6 +45,9 @@ public interface Protocol {
      * 2. export() must be idempotent, that is, there's no difference between invoking once and invoking twice when
      * export the same URL<br>
      * 3. Invoker instance is passed in by the framework, protocol needs not to care <br>
+     * 将一个Invoker暴露出去，export()方法实现需要时幂等的
+     * 即同一个服务暴露多次和暴露一次的效果时相同的
+     * 不仅仅是简单的将Invoker对象包装成Exporter对象返回，其中还涉及到代理对象的创建、底层Server的启动等操作
      *
      * @param <T>     Service type
      * @param invoker Service invoker
@@ -60,6 +65,9 @@ public interface Protocol {
      * protocol sends remote request in the `Invoker` implementation. <br>
      * 3. When there's check=false set in URL, the implementation must not throw exception but try to recover when
      * connection fails.
+     * 引用一个Invoker，refer()方法会根据参数返回一个Invoker对象
+     * Consumer端可以通过这个Invoker请求到Provider端的服务
+     * 除了根据闯入的type类型和URL参数查询Invoker以外，还涉及相关Client的创建等操作
      *
      * @param <T>  Service type
      * @param type Service class
@@ -75,11 +83,14 @@ public interface Protocol {
      * 1. Cancel all services this protocol exports and refers <br>
      * 2. Release all occupied resources, for example: connection, port, etc. <br>
      * 3. Protocol can continue to export and refer new service even after it's destroyed.
+     * 销毁exprot()方法以及refer()方法使用到的Invoker对象，
+     * 释放当前Protocol对象底层占用的资源
      */
     void destroy();
 
     /**
      * Get all servers serving this protocol
+     * 返回当前Protocol底层的全部ProtocolServer
      *
      * @return
      */

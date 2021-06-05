@@ -40,12 +40,18 @@ import static org.apache.dubbo.common.constants.CommonConstants.GROUP_KEY;
 import static org.apache.dubbo.common.constants.CommonConstants.VERSION_KEY;
 
 /**
+ * 提供Protocol实现需要的公共能力以及公共字段
  * abstract ProtocolSupport.
  */
 public abstract class AbstractProtocol implements Protocol {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
+    /**
+     * 核心字段
+     * 用于存储出去的服务集合
+     * Key:serviceKey()
+     */
     protected final Map<String, Exporter<?>> exporterMap = new ConcurrentHashMap<String, Exporter<?>>();
 
     /**
@@ -62,6 +68,7 @@ public abstract class AbstractProtocol implements Protocol {
     }
 
     protected static String serviceKey(int port, String serviceName, String serviceVersion, String serviceGroup) {
+        // serviceName、serviceVersion、port进行分类，serviceKey也是根据这三个拼接而成
         return ProtocolUtils.serviceKey(port, serviceName, serviceVersion, serviceGroup);
     }
 
@@ -69,6 +76,9 @@ public abstract class AbstractProtocol implements Protocol {
         return Collections.unmodifiableList(new ArrayList<>(serverMap.values()));
     }
 
+    /**
+     * 销毁发布出去的服务
+     */
     @Override
     public void destroy() {
         for (Invoker<?> invoker : invokers) {
@@ -78,6 +88,7 @@ public abstract class AbstractProtocol implements Protocol {
                     if (logger.isInfoEnabled()) {
                         logger.info("Destroy reference: " + invoker.getUrl());
                     }
+                    // 关闭全部服务的引用
                     invoker.destroy();
                 } catch (Throwable t) {
                     logger.warn(t.getMessage(), t);
@@ -91,6 +102,7 @@ public abstract class AbstractProtocol implements Protocol {
                     if (logger.isInfoEnabled()) {
                         logger.info("Unexport service: " + exporter.getInvoker().getUrl());
                     }
+                    // 关闭暴露出去的服务
                     exporter.unexport();
                 } catch (Throwable t) {
                     logger.warn(t.getMessage(), t);

@@ -19,6 +19,7 @@ package org.apache.dubbo.rpc;
 import org.apache.dubbo.common.extension.SPI;
 
 /**
+ * 用来拦截Dubbo请求
  * Extension for intercepting the invocation for both service provider and consumer, furthermore, most of
  * functions in dubbo are implemented base on the same mechanism. Since every time when remote method is
  * invoked, the filter extensions will be executed too, the corresponding penalty should be considered before
@@ -44,10 +45,12 @@ import org.apache.dubbo.common.extension.SPI;
 public interface Filter {
     /**
      * Make sure call invoker.invoke() in your implementation.
+     * 将请求传给后续的Invoker进行处理
      */
     Result invoke(Invoker<?> invoker, Invocation invocation) throws RpcException;
 
     interface Listener {
+        // 用于监听响应以及异常
 
         void onResponse(Result appResponse, Invoker<?> invoker, Invocation invocation);
 

@@ -282,7 +282,9 @@ public class DubboProtocol extends AbstractProtocol {
         URL url = invoker.getUrl();
 
         // export service.
+        // 创建ServiceKey
         String key = serviceKey(url);
+        // 将上层传入的Invoker对象封装成DubboExporter对象，然后记录到exporterMap集合中
         DubboExporter<T> exporter = new DubboExporter<T>(invoker, key, exporterMap);
         exporterMap.put(key, exporter);
 
@@ -300,28 +302,35 @@ public class DubboProtocol extends AbstractProtocol {
             }
         }
 
+        // 启动ProtocolServer
         openServer(url);
+        // 进行序列化的优化处理
         optimizeSerialization(url);
 
         return exporter;
     }
 
     private void openServer(URL url) {
-        // find server.
+        // find server. 获取host:port这个地址
         String key = url.getAddress();
         //client can export a service which's only for server to invoke
         boolean isServer = url.getParameter(IS_SERVER_KEY, true);
         if (isServer) {
+            // 只有Server端才能启动Server对象
             ProtocolServer server = serverMap.get(key);
+            // 无ProtocolServer监听该地址
             if (server == null) {
+                // double check 防止并发问题
                 synchronized (this) {
                     server = serverMap.get(key);
                     if (server == null) {
+                        // 创建ProtocolServer对象
                         serverMap.put(key, createServer(url));
                     }
                 }
             } else {
                 // server supports reset, use together with override
+                // 如果已有Protocol，则尝试根据URL信息重置ProtocolServer
                 server.reset(url);
             }
         }
@@ -330,11 +339,15 @@ public class DubboProtocol extends AbstractProtocol {
     private ProtocolServer createServer(URL url) {
         url = URLBuilder.from(url)
                 // send readonly event when server closes, it's enabled by default
+                // readonlty请求是否阻塞等待
                 .addParameterIfAbsent(CHANNEL_READONLYEVENT_SENT_KEY, Boolean.TRUE.toString())
                 // enable heartbeat by default
+                // 心跳间隔
                 .addParameterIfAbsent(HEARTBEAT_KEY, String.valueOf(DEFAULT_HEARTBEAT))
+                // Codec2扩展实现
                 .addParameter(CODEC_KEY, DubboCodec.NAME)
                 .build();
+        // 检测SERVER_KEY参数指定的Transporter扩展实现是否合法
         String str = url.getParameter(SERVER_KEY, DEFAULT_REMOTING_SERVER);
 
         if (str != null && str.length() > 0 && !ExtensionLoader.getExtensionLoader(Transporter.class).hasExtension(str)) {
@@ -343,11 +356,13 @@ public class DubboProtocol extends AbstractProtocol {
 
         ExchangeServer server;
         try {
+            // 通过Exchangers门面类，创建ExchangeServer对象
             server = Exchangers.bind(url, requestHandler);
         } catch (RemotingException e) {
             throw new RpcException("Fail to start server(url: " + url + ") " + e.getMessage(), e);
         }
 
+        // 检测CLIENT_KEY参数指定的Transporter扩展实现是否合法
         str = url.getParameter(CLIENT_KEY);
         if (str != null && str.length() > 0) {
             Set<String> supportedTypes = ExtensionLoader.getExtensionLoader(Transporter.class).getSupportedExtensions();
@@ -356,6 +371,7 @@ public class DubboProtocol extends AbstractProtocol {
             }
         }
 
+        // 将ExchangeServer封装成DubboProtocolServer返回
         return new DubboProtocolServer(server);
     }
 
