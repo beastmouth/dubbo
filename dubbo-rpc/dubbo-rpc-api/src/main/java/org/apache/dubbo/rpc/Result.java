@@ -48,6 +48,7 @@ public interface Result extends Serializable {
 
     /**
      * Get invoke result.
+     * 获取此次调用的返回值
      *
      * @return result. if no result return null.
      */
@@ -57,6 +58,7 @@ public interface Result extends Serializable {
 
     /**
      * Get exception.
+     * 如果此次调用发生异常，可以通过该方法获取异常
      *
      * @return exception. if no exception return null.
      */
@@ -73,6 +75,7 @@ public interface Result extends Serializable {
 
     /**
      * Recreate.
+     * 是一个复合操作，如果此次调用发生异常，则直接跑出异常。没有异常则返回结果
      * <p>
      * <code>
      * if (hasException()) {
@@ -149,6 +152,7 @@ public interface Result extends Serializable {
 
     /**
      * get attachment by key with default value.
+     * Result中携带的附加信息
      *
      * @return attachment value.
      */
@@ -172,6 +176,7 @@ public interface Result extends Serializable {
 
     /**
      * Add a callback which can be triggered when the RPC call finishes.
+     * 添加一个回调，当RPC调用完成时，则会触发这里添加的回调
      * <p>
      * Just as the method name implies, this method will guarantee the callback being triggered under the same context as when the call was started,
      * see implementation in {@link Result#whenCompleteWithContext(BiConsumer)}
