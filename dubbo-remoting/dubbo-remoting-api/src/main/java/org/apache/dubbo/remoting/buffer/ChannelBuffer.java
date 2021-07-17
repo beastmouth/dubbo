@@ -23,6 +23,22 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 /**
+ * getBytes()、setBytes() 方法：从参数指定的位置读、写当前 ChannelBuffer，不会修改 readerIndex 和 writerIndex 指针的位置。
+ *
+ * readBytes() 、writeBytes() 方法：也是读、写当前 ChannelBuffer，
+ * 但是 readBytes() 方法会从 readerIndex 指针开始读取数据，并移动 readerIndex 指针；
+ * writeBytes() 方法会从 writerIndex 指针位置开始写入数据，并移动 writerIndex 指针。
+ *
+ * markReaderIndex()、markWriterIndex() 方法：记录当前 readerIndex 指针和 writerIndex 指针的位置，
+ * 一般会和 resetReaderIndex()、resetWriterIndex() 方法配套使用。
+ * resetReaderIndex() 方法会将 readerIndex 指针重置到 markReaderIndex() 方法标记的位置，resetwriterIndex() 方法同理。
+ *
+ * capacity()、clear()、copy() 等辅助方法用来获取 ChannelBuffer 容量以及实现清理、拷贝数据的功能
+ *
+ * 该方法返回创建 ChannelBuffer 的工厂对象，
+ * ChannelBufferFactory 中定义了多个 getBuffer() 方法重载来创建 ChannelBuffer，
+ * 如下图所示，这些 ChannelBufferFactory的实现都是单例的。
+ *
  * A random and sequential accessible sequence of zero or more bytes (octets).
  * This interface provides an abstract view for one or more primitive byte
  * arrays ({@code byte[]}) and {@linkplain ByteBuffer NIO buffers}.

@@ -92,15 +92,18 @@ public final class ChannelBuffers {
 
     public static boolean equals(ChannelBuffer bufferA, ChannelBuffer bufferB) {
         final int aLen = bufferA.readableBytes();
+        // 比较两个ChannelBuffer的可读字节数
         if (aLen != bufferB.readableBytes()) {
             return false;
         }
 
+        // 只比较前7个字节
         final int byteCount = aLen & 7;
 
         int aIndex = bufferA.readerIndex();
         int bIndex = bufferB.readerIndex();
 
+        // 前7个字节发现不同，则返回false
         for (int i = byteCount; i > 0; i--) {
             if (bufferA.getByte(aIndex) != bufferB.getByte(bIndex)) {
                 return false;

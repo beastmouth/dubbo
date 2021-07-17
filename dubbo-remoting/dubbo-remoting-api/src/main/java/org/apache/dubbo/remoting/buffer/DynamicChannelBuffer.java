@@ -22,6 +22,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
+/**
+ * DynamicChannelBuffer 可以认为是其他 ChannelBuffer 的装饰器，它可以为其他 ChannelBuffer 添加动态扩展容量的功能。
+ */
 public class DynamicChannelBuffer extends AbstractChannelBuffer {
 
     private final ChannelBufferFactory factory;
@@ -57,6 +60,7 @@ public class DynamicChannelBuffer extends AbstractChannelBuffer {
         }
         int minNewCapacity = writerIndex() + minWritableBytes;
         while (newCapacity < minNewCapacity) {
+            // *2
             newCapacity <<= 1;
         }
 

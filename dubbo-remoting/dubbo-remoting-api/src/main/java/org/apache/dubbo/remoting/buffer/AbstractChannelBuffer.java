@@ -22,6 +22,18 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
+/**
+ * 实现了 ChannelBuffer 接口的大部分方法，其核心是维护了以下四个索引。
+ * readerIndex、writerIndex（int 类型）：
+ * 通过 readBytes() 方法及其重载读取数据时，会后移 readerIndex 索引；
+ * 通过 writeBytes() 方法及其重载写入数据的时候，会后移 writerIndex 索引。
+ *
+ * markedReaderIndex、markedWriterIndex（int 类型）：
+ * 实现记录 readerIndex（writerIndex）以及回滚 readerIndex（writerIndex）的功能，
+ * 前面我们已经介绍过markReaderIndex() 方法、resetReaderIndex() 方法以及 markWriterIndex() 方法、resetWriterIndex() 方法，
+ *
+ *  readBytes() 和 writeBytes() 方法的各个重载最终会通过 getBytes() 方法和 setBytes() 方法实现数据的读写
+ */
 public abstract class AbstractChannelBuffer implements ChannelBuffer {
 
     private int readerIndex;
