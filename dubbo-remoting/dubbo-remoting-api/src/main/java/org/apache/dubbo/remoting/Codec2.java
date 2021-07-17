@@ -22,6 +22,9 @@ import org.apache.dubbo.remoting.buffer.ChannelBuffer;
 
 import java.io.IOException;
 
+/**
+ * 负责编解码的 ChannelHandler 被抽象出为 Codec2 接口
+ */
 @SPI
 public interface Codec2 {
 

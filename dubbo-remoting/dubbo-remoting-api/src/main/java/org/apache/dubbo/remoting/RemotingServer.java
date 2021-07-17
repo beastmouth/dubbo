@@ -22,6 +22,9 @@ import java.net.InetSocketAddress;
 import java.util.Collection;
 
 /**
+ * 服务端
+ * 继承了 Channel、Resetable 等接口，也就是说具备了读写数据能力。
+ * Server 可以接收多个 Client 发起的 Channel 连接
  * Remoting Server. (API/SPI, Prototype, ThreadSafe)
  * <p>
  * <a href="http://en.wikipedia.org/wiki/Client%E2%80%93server_model">Client/Server</a>

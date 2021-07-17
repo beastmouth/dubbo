@@ -21,6 +21,13 @@ import org.apache.dubbo.common.URL;
 import java.net.InetSocketAddress;
 
 /**
+ * 端点
+ * 可以通过一个 ip 和 port 唯一确定一个端点，两个端点之间会创建 TCP 连接，可以双向传输数据
+ * Endpoint之间建立的链接成为通道 Channel
+ * 发送请求的Endpoint为 Client
+ * 接受请求的Endpoint为 Server
+ * get* 方法，获取Endpoint的基本属性
+ *
  * Endpoint. (API/SPI, Prototype, ThreadSafe)
  *
  *

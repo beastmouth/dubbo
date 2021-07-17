@@ -20,6 +20,8 @@ import java.net.InetSocketAddress;
 
 /**
  * Channel. (API/SPI, Prototype, ThreadSafe)
+ * 一个是 Channel 接口继承了 Endpoint 接口，也具备开关状态以及发送数据的能力；
+ * 另一个是可以在 Channel 上附加 KV 属性
  *
  * @see org.apache.dubbo.remoting.Client
  * @see RemotingServer#getChannels()

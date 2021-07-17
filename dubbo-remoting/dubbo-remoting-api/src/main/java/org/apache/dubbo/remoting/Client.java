@@ -19,6 +19,9 @@ package org.apache.dubbo.remoting;
 import org.apache.dubbo.common.Resetable;
 
 /**
+ * 客户端
+ * 继承了 Channel、Resetable 等接口，也就是说具备了读写数据能力。
+ *  Client 只能关联一个 Channel
  * Remoting Client. (API/SPI, Prototype, ThreadSafe)
  * <p>
  * <a href="http://en.wikipedia.org/wiki/Client%E2%80%93server_model">Client/Server</a>
