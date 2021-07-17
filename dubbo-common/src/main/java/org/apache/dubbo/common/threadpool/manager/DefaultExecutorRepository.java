@@ -72,13 +72,17 @@ public class DefaultExecutorRepository implements ExecutorRepository {
      */
     public synchronized ExecutorService createExecutorIfAbsent(URL url) {
         String componentKey = EXECUTOR_SERVICE_COMPONENT_KEY;
+        // 根据URL中的side参数值决定第一层key
         if (CONSUMER_SIDE.equalsIgnoreCase(url.getParameter(SIDE_KEY))) {
             componentKey = CONSUMER_SIDE;
         }
         Map<Integer, ExecutorService> executors = data.computeIfAbsent(componentKey, k -> new ConcurrentHashMap<>());
         Integer portKey = url.getPort();
+        // 根据URL中的port值确定第二层key
         ExecutorService executor = executors.computeIfAbsent(portKey, k -> createExecutor(url));
         // If executor has been shut down, create a new one
+        // 如果缓存中相应的线程池已关闭，则同样需要调用createExecutor()方法
+        // 创建新的线程池，并替换掉缓存中已关闭的线程池，这里省略这段逻辑
         if (executor.isShutdown() || executor.isTerminated()) {
             executors.remove(portKey);
             executor = createExecutor(url);

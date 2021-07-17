@@ -23,7 +23,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
 /**
+ * ExecutorRepository 负责创建并管理 Dubbo 中的线程池，
+ * 该接口虽然是个 SPI 扩展点，但是只有一个默认实现—— DefaultExecutorRepository。
+ * 在该默认实现中维护了一个 ConcurrentMap<String, ConcurrentMap<Integer, ExecutorService>> 集合（data 字段）缓存已有的线程池，
+ * 第一层 Key 值表示线程池属于 Provider 端还是 Consumer 端，第二层 Key 值表示线程池关联服务的端口。
  *
+ * DefaultExecutorRepository.createExecutorIfAbsent() 方法会根据 URL 参数创建相应的线程池并缓存在合适的位置，具体实现如下：
  */
 @SPI("default")
 public interface ExecutorRepository {

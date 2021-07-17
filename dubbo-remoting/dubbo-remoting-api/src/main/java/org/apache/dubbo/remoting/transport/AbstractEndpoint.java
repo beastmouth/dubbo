@@ -44,13 +44,18 @@ public abstract class AbstractEndpoint extends AbstractPeer implements Resetable
     private int connectTimeout;
 
     public AbstractEndpoint(URL url, ChannelHandler handler) {
+        // 调用父类AbstractPeer的构造方法
         super(url, handler);
+        // 根据URL中的codec参数值，确定此处具体的Codec2实现类
         this.codec = getChannelCodec(url);
+        // 根据URL中的timeout参数确定timeout字段的值，默认1000
         this.timeout = url.getPositiveParameter(TIMEOUT_KEY, DEFAULT_TIMEOUT);
+        // 根据URL中的connect.timeout参数确定connectTimeout字段的值，默认3000
         this.connectTimeout = url.getPositiveParameter(Constants.CONNECT_TIMEOUT_KEY, Constants.DEFAULT_CONNECT_TIMEOUT);
     }
 
     protected static Codec2 getChannelCodec(URL url) {
+        // 根据URL的codec参数获取扩展名
         String codecName = url.getProtocol(); // codec extension name must stay the same with protocol name
         if (ExtensionLoader.getExtensionLoader(Codec2.class).hasExtension(codecName)) {
             return ExtensionLoader.getExtensionLoader(Codec2.class).getExtension(codecName);
@@ -62,10 +67,12 @@ public abstract class AbstractEndpoint extends AbstractPeer implements Resetable
 
     @Override
     public void reset(URL url) {
+        // 检测当前AbstractEndpoint是否已经关闭
         if (isClosed()) {
             throw new IllegalStateException("Failed to reset parameters "
                     + url + ", cause: Channel closed. channel: " + getLocalAddress());
         }
+        // 省略重置timeout、connectTimeout两个字段
         try {
             if (url.hasParameter(TIMEOUT_KEY)) {
                 int t = url.getParameter(TIMEOUT_KEY, 0);
@@ -88,6 +95,7 @@ public abstract class AbstractEndpoint extends AbstractPeer implements Resetable
         }
         try {
             if (url.hasParameter(Constants.CODEC_KEY)) {
+                // 重置 codec 字段的代码片段，还是调用 getChannelCodec() 方法
                 this.codec = getChannelCodec(url);
             }
         } catch (Throwable t) {

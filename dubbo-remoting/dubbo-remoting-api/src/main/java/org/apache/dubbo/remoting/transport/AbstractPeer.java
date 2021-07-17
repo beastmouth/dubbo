@@ -24,6 +24,8 @@ import org.apache.dubbo.remoting.Endpoint;
 import org.apache.dubbo.remoting.RemotingException;
 
 /**
+ * 它同时实现了 Endpoint 接口和 ChannelHandler 接口，
+ * 也是 AbstractChannel、AbstractEndpoint 抽象类的父类
  * AbstractPeer
  */
 public abstract class AbstractPeer implements Endpoint, ChannelHandler {

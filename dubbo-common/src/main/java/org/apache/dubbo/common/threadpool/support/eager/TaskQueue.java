@@ -42,6 +42,9 @@ public class TaskQueue<R extends Runnable> extends LinkedBlockingQueue<Runnable>
         executor = exec;
     }
 
+    /**
+     * 覆盖
+     */
     @Override
     public boolean offer(Runnable runnable) {
         if (executor == null) {
@@ -60,6 +63,7 @@ public class TaskQueue<R extends Runnable> extends LinkedBlockingQueue<Runnable>
         }
 
         // currentPoolThreadSize >= max
+        // 当前线程数已经达到上限，只能放到队列中缓存了
         return super.offer(runnable);
     }
 
