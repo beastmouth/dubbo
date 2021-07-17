@@ -19,6 +19,8 @@ package org.apache.dubbo.common.serialize;
 import java.io.IOException;
 
 /**
+ * 定义了序列化 Java 中各种数据类型的相应方法，
+ * 其中有序列化 boolean、short、int、long 等基础类型的方法，也有序列化 String、byte[] 的方法。
  * Basic data type output interface.
  */
 public interface DataOutput {

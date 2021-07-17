@@ -29,8 +29,12 @@ import java.io.OutputStream;
  */
 public class Hessian2ObjectOutput implements ObjectOutput {
 
+    /**
+     * 放置在ThreadLocal中
+     */
     private static ThreadLocal<Hessian2Output> OUTPUT_TL = ThreadLocal.withInitial(() -> {
         Hessian2Output h2o = new Hessian2Output(null);
+        // 初始化Hessian2Output对象
         h2o.setSerializerFactory(Hessian2FactoryInitializer.getInstance().getSerializerFactory());
         h2o.setCloseStreamOnClose(true);
         return h2o;
@@ -39,6 +43,7 @@ public class Hessian2ObjectOutput implements ObjectOutput {
     private final Hessian2Output mH2o;
 
     public Hessian2ObjectOutput(OutputStream os) {
+        // 触发OUTPUT_TL的初始化
         mH2o = OUTPUT_TL.get();
         mH2o.init(os);
     }
