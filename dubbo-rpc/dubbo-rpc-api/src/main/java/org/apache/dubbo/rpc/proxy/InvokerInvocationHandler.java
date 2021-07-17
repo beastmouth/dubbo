@@ -54,7 +54,9 @@ public class InvokerInvocationHandler implements InvocationHandler {
         if (method.getDeclaringClass() == Object.class) {
             return method.invoke(invoker, args);
         }
+        // 获取调用的远程方法名
         String methodName = method.getName();
+        // 获取参数
         Class<?>[] parameterTypes = method.getParameterTypes();
         if (parameterTypes.length == 0) {
             if ("toString".equals(methodName)) {
@@ -68,6 +70,7 @@ public class InvokerInvocationHandler implements InvocationHandler {
         } else if (parameterTypes.length == 1 && "equals".equals(methodName)) {
             return invoker.equals(args[0]);
         }
+        // 构建一个dubbo rpc invocation
         RpcInvocation rpcInvocation = new RpcInvocation(method, invoker.getInterface().getName(), protocolServiceKey, args);
         String serviceKey = invoker.getUrl().getServiceKey();
         rpcInvocation.setTargetServiceUniqueName(serviceKey);
@@ -80,6 +83,7 @@ public class InvokerInvocationHandler implements InvocationHandler {
             rpcInvocation.put(Constants.METHOD_MODEL, consumerModel.getMethodModel(method));
         }
 
+        // 远程调用
         return invoker.invoke(rpcInvocation).recreate();
     }
 }

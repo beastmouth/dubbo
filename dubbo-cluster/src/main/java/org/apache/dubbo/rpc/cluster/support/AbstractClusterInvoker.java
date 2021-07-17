@@ -260,6 +260,7 @@ public abstract class AbstractClusterInvoker<T> implements ClusterInvoker<T> {
         }
 
         List<Invoker<T>> invokers = list(invocation);
+        // 根据@SPI选择负载均衡的策略
         LoadBalance loadbalance = initLoadBalance(invokers, invocation);
         RpcUtils.attachInvocationIdIfAsync(getUrl(), invocation);
         return doInvoke(invocation, invokers, loadbalance);
