@@ -215,7 +215,7 @@ public class RegistryProtocol implements Protocol {
         // decide if we need to delay publish
         boolean register = providerUrl.getParameter(REGISTER_KEY, true);
         if (register) {
-            // TODO 注册未看
+            // 注册未看
             register(registryUrl, registeredProviderUrl);
         }
 
