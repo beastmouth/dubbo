@@ -226,6 +226,9 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
         dispatch(new ReferenceConfigDestroyedEvent(this));
     }
 
+    /**
+     * consumer初始化
+     */
     public synchronized void init() {
         if (initialized) {
             return;
@@ -302,6 +305,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
 
         serviceMetadata.getAttachments().putAll(map);
 
+        // 创建代理 即生成invoker（代理中包括invoker）
         ref = createProxy(map);
 
         serviceMetadata.setTarget(ref);

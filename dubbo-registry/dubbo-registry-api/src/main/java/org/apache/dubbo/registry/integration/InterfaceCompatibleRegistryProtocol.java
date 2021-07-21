@@ -67,6 +67,7 @@ public class InterfaceCompatibleRegistryProtocol extends RegistryProtocol {
     }
 
     protected <T> Invoker<T> doRefer(Cluster cluster, Registry registry, Class<T> type, URL url) {
+        // 注册并包装成invoker
         ClusterInvoker<T> invoker = getInvoker(cluster, registry, type, url);
         ClusterInvoker<T> serviceDiscoveryInvoker = getServiceDiscoveryInvoker(cluster, type, url);
         ClusterInvoker<T> migrationInvoker = new MigrationInvoker<>(invoker, serviceDiscoveryInvoker);
