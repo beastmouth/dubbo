@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
+ * 轮询 具体的策略见下面的注释
  * Round robin load balance.
  */
 public class RoundRobinLoadBalance extends AbstractLoadBalance {
@@ -108,9 +109,11 @@ public class RoundRobinLoadBalance extends AbstractLoadBalance {
                 //weight changed
                 weightedRoundRobin.setWeight(weight);
             }
+            // current + 当前轮询的权重
             long cur = weightedRoundRobin.increaseCurrent();
             weightedRoundRobin.setLastUpdate(now);
             if (cur > maxCurrent) {
+                // 被选中
                 maxCurrent = cur;
                 selectedInvoker = invoker;
                 selectedWRR = weightedRoundRobin;
@@ -121,6 +124,7 @@ public class RoundRobinLoadBalance extends AbstractLoadBalance {
             map.entrySet().removeIf(item -> now - item.getValue().getLastUpdate() > RECYCLE_PERIOD);
         }
         if (selectedInvoker != null) {
+            // 被选中的要减去总共的weight 以保证下次不会被选中
             selectedWRR.sel(totalWeight);
             return selectedInvoker;
         }

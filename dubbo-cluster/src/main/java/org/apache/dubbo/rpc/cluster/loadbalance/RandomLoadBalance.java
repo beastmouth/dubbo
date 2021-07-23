@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
+ * 如果权重相同，nextInt随机选择一个invoker
+ * 如果权重不同，取权重总和后获取一个随机数，然后逐个invoker权重减去，<0时则将当前的invoker的返回
  * This class select one provider from multiple providers randomly.
  * You can define weights for each provider:
  * If the weights are all the same then it will use random.nextInt(number of invokers).
@@ -73,6 +75,7 @@ public class RandomLoadBalance extends AbstractLoadBalance {
             for (int i = 0; i < length; i++) {
                 offset -= weights[i];
                 if (offset < 0) {
+                    // 小于0，返回invoker
                     return invokers.get(i);
                 }
             }
