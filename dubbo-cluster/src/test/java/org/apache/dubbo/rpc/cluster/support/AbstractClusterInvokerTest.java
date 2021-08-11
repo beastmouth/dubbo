@@ -216,6 +216,27 @@ public class AbstractClusterInvokerTest {
     }
 
     @Test
+    public void testAdaptive() {
+        invokers.clear();
+        invokers.add(invoker2);
+        invokers.add(invoker4);
+
+        LoadBalance loadBalance = ExtensionLoader.getExtensionLoader(LoadBalance.class).getAdaptiveExtension();
+        URL url0 = URL.valueOf("test://test:11/test");
+        loadBalance.select(invokers, url0, invocation);
+
+        URL url1 = URL.valueOf("test://test:11/test").addParameter("loadbalance", RandomLoadBalance.NAME);
+        loadBalance.select(invokers, url1, invocation);
+
+        URL url2 = URL.valueOf("test://test:11/test").addParameter("loadbalance", RoundRobinLoadBalance.NAME);
+        loadBalance.select(invokers, url2, invocation);
+
+        LoadBalance loadBalance2 = ExtensionLoader.getExtensionLoader(LoadBalance.class).getDefaultExtension();
+        loadBalance2.select(invokers, url1, invocation);
+        loadBalance2.select(invokers, url2, invocation);
+    }
+
+    @Test
     public void testSelect_multiInvokers() throws Exception {
         testSelect_multiInvokers(RoundRobinLoadBalance.NAME);
         testSelect_multiInvokers(LeastActiveLoadBalance.NAME);

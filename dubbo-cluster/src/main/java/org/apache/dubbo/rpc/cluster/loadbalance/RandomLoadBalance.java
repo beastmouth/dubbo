@@ -47,6 +47,7 @@ public class RandomLoadBalance extends AbstractLoadBalance {
      */
     @Override
     protected <T> Invoker<T> doSelect(List<Invoker<T>> invokers, URL url, Invocation invocation) {
+        System.out.println("execute random load balance");
         // Number of invokers
         int length = invokers.size();
         // Every invoker has the same weight?
