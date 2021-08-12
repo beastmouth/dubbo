@@ -221,6 +221,7 @@ public class AbstractClusterInvokerTest {
         invokers.add(invoker2);
         invokers.add(invoker4);
 
+        // 实际上是使用了一个适配器类，然后根据@Adaptive里面配置的字段，去URL中获取对应的value，然后动态选择对应的适配器
         LoadBalance loadBalance = ExtensionLoader.getExtensionLoader(LoadBalance.class).getAdaptiveExtension();
         URL url0 = URL.valueOf("test://test:11/test");
         loadBalance.select(invokers, url0, invocation);
