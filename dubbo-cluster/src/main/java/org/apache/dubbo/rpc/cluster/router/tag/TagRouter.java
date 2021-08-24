@@ -84,6 +84,9 @@ public class TagRouter extends AbstractRouter implements ConfigurationListener {
         return url;
     }
 
+    /**
+     * 根据tag过滤，可以用来实现灰度发布等
+     */
     @Override
     public <T> List<Invoker<T>> route(List<Invoker<T>> invokers, URL url, Invocation invocation) throws RpcException {
         if (CollectionUtils.isEmpty(invokers)) {
