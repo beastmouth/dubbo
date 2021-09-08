@@ -27,6 +27,7 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.core.Ordered;
 
 /**
+ *
  * The {@link ApplicationListener} for {@link DubboBootstrap}'s lifecycle when the {@link ContextRefreshedEvent}
  * and {@link ContextClosedEvent} raised
  *
@@ -51,6 +52,7 @@ public class DubboBootstrapApplicationListener extends OnceApplicationContextEve
     @Override
     public void onApplicationContextEvent(ApplicationContextEvent event) {
         if (event instanceof ContextRefreshedEvent) {
+            // dubbo服务暴露的起点 spring 上下文刷新完成事件
             onContextRefreshedEvent((ContextRefreshedEvent) event);
         } else if (event instanceof ContextClosedEvent) {
             onContextClosedEvent((ContextClosedEvent) event);

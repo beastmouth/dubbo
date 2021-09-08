@@ -202,8 +202,10 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         }
 
         if (shouldDelay()) {
+            // 延迟暴露
             DELAY_EXPORT_EXECUTOR.schedule(this::doExport, getDelay(), TimeUnit.MILLISECONDS);
         } else {
+            // 暴露
             doExport();
         }
 
@@ -311,6 +313,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
     private void doExportUrls() {
         ServiceRepository repository = ApplicationModel.getServiceRepository();
         ServiceDescriptor serviceDescriptor = repository.registerService(getInterfaceClass());
+        // 往内存中添加provider
         repository.registerProvider(
                 getUniqueServiceName(),
                 ref,
@@ -319,6 +322,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                 serviceMetadata
         );
 
+        // 获取当前服务的注册中心URL（支持多注册中心）
         List<URL> registryURLs = ConfigValidationUtils.loadRegistries(this, true);
 
         for (ProtocolConfig protocolConfig : protocols) {
@@ -326,9 +330,11 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                     .map(p -> p + "/" + path)
                     .orElse(path), group, version);
             // In case user specified path, register service one more time to map it to path.
+            // 注册dubbo service(放入到map中)
             repository.registerService(pathKey, interfaceClass);
             // TODO, uncomment this line once service key is unified
             serviceMetadata.setServiceKey(pathKey);
+            // 暴露(将上面存入的dubbo service,生成invoker,再包装成export暴露)
             doExportUrlsFor1Protocol(protocolConfig, registryURLs);
         }
     }
@@ -449,7 +455,10 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         // export service
         String host = findConfigedHosts(protocolConfig, registryURLs, map);
         Integer port = findConfigedPorts(protocolConfig, name, map);
+        // 以上操作是往map中填入数据，构建URL
         URL url = new URL(name, host, port, getContextPath(protocolConfig).map(p -> p + "/" + path).orElse(path), map);
+        // url的内容
+        // dubbo://10.167.10.19:20880/org.apache.dubbo.demo.DemoService?anyhost=true&application=dubbo-demo-api-provider&bind.ip=10.167.10.19&bind.port=20880&default=true&deprecated=false&dubbo=2.0.2&dynamic=true&generic=false&interface=org.apache.dubbo.demo.DemoService&methods=sayHello,sayHelloAsync&pid=43793&release=&side=provider&timestamp=1631080120436
 
         // You can customize Configurator to append extra parameters
         if (ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class)
@@ -464,9 +473,12 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
 
             // export to local if the config is not remote (export to remote only when config is remote)
             if (!SCOPE_REMOTE.equalsIgnoreCase(scope)) {
+                // 有一个本地暴露，只所以需要本地暴露是考虑到同一个服务内假如需要调用当前的dubbo接口，则可以直接走jvm内部(injvm),减少网络间的通讯
+                // 修改url协议为injvm
                 exportLocal(url);
             }
             // export to remote if the config is not local (export to local only when config is local)
+            // 远程暴露
             if (!SCOPE_LOCAL.equalsIgnoreCase(scope)) {
                 if (CollectionUtils.isNotEmpty(registryURLs)) {
                     for (URL registryURL : registryURLs) {
@@ -493,7 +505,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                             registryURL = registryURL.addParameter(PROXY_KEY, proxy);
                         }
 
-                        // 生成Invoker对象
+                        // 生成Invoker对象(动态代理创建 javassist)
                         Invoker<?> invoker = PROXY_FACTORY.getInvoker(ref, (Class) interfaceClass, registryURL.addParameterAndEncoded(EXPORT_KEY, url.toFullString()));
                         // 包装
                         DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);

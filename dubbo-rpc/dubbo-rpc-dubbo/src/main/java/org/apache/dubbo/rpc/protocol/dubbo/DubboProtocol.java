@@ -105,6 +105,9 @@ public class DubboProtocol extends AbstractProtocol {
     private final ConcurrentMap<String, Object> locks = new ConcurrentHashMap<>();
     private final Set<String> optimizers = new ConcurrentHashSet<>();
 
+    /**
+     * 处理consumer的请求
+     */
     private ExchangeHandler requestHandler = new ExchangeHandlerAdapter() {
 
         @Override
@@ -357,6 +360,7 @@ public class DubboProtocol extends AbstractProtocol {
         ExchangeServer server;
         try {
             // 通过Exchangers门面类，创建ExchangeServer对象
+            // 处理consumer的请求
             server = Exchangers.bind(url, requestHandler);
         } catch (RemotingException e) {
             throw new RpcException("Fail to start server(url: " + url + ") " + e.getMessage(), e);

@@ -21,7 +21,9 @@ import org.apache.dubbo.config.RegistryConfig;
 import org.apache.dubbo.config.ServiceConfig;
 import org.apache.dubbo.config.bootstrap.DubboBootstrap;
 import org.apache.dubbo.demo.DemoService;
+import org.apache.dubbo.demo.GreetingService;
 
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
 public class Application {
@@ -44,6 +46,13 @@ public class Application {
         service.setInterface(DemoService.class);
         // 指定业务接口的实现，由该对象来处理Consumer的请求
         service.setRef(new DemoServiceImpl());
+        service.setId(UUID.randomUUID().toString());
+
+        // 注册多个api的话，需要制定下service id，否则会被认为重复（TODO 具体原因equal认为重复未看）
+        ServiceConfig<GreetingServiceImpl> service2 = new ServiceConfig<>();
+        service2.setInterface(GreetingService.class);
+        service2.setRef(new GreetingServiceImpl());
+        service2.setId(UUID.randomUUID().toString());
 
         // 获取DubboBootstrap实例，这是个单例的对象
         DubboBootstrap bootstrap = DubboBootstrap.getInstance();
@@ -51,6 +60,7 @@ public class Application {
         bootstrap.application(new ApplicationConfig("dubbo-demo-api-provider"))
                 .registry(new RegistryConfig("zookeeper://127.0.0.1:2181"))
                 .service(service)
+                .service(service2)
                 .start()
                 .await();
     }
