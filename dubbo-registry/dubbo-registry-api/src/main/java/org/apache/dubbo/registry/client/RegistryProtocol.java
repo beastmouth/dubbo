@@ -470,6 +470,7 @@ public class RegistryProtocol implements Protocol {
     }
 
     protected <T> ClusterInvoker<T> getInvoker(Cluster cluster, Registry registry, Class<T> type, URL url) {
+        // 封装成一个directory （invoker的集合）
         DynamicDirectory<T> directory = createDirectory(type, url);
         directory.setRegistry(registry);
         directory.setProtocol(protocol);
@@ -481,6 +482,7 @@ public class RegistryProtocol implements Protocol {
             registry.register(directory.getRegisteredConsumerUrl());
         }
         directory.buildRouterChain(urlToRegistry);
+        // 订阅provider
         directory.subscribe(toSubscribeUrl(urlToRegistry));
 
         return (ClusterInvoker<T>) cluster.join(directory);

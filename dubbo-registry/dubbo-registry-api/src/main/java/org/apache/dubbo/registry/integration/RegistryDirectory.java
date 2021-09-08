@@ -142,6 +142,7 @@ public class RegistryDirectory<T> extends DynamicDirectory<T> implements NotifyL
 
     @Override
     public synchronized void notify(List<URL> urls) {
+        // 通知 需要刷新invoker信息(第一次初始化和后续注册中心provider信息变化都会通知)
         Map<String, List<URL>> categoryUrls = urls.stream()
                 .filter(Objects::nonNull)
                 .filter(this::isValidCategory)
@@ -243,6 +244,7 @@ public class RegistryDirectory<T> extends DynamicDirectory<T> implements NotifyL
             // pre-route and build cache, notice that route cache should build on original Invoker list.
             // toMergeMethodInvokerMap() will wrap some invokers having different groups, those wrapped invokers not should be routed.
             routerChain.setInvokers(newInvokers);
+            // 设置invoker
             this.invokers = multiGroup ? toMergeInvokerList(newInvokers) : newInvokers;
             this.urlInvokerMap = newUrlInvokerMap;
 
@@ -365,6 +367,7 @@ public class RegistryDirectory<T> extends DynamicDirectory<T> implements NotifyL
                         enabled = url.getParameter(ENABLED_KEY, true);
                     }
                     if (enabled) {
+                        // 根据provider url生成对应的invoker
                         invoker = new InvokerDelegate<>(protocol.refer(serviceType, url), url, providerUrl);
                     }
                 } catch (Throwable t) {

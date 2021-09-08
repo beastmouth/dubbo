@@ -304,6 +304,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
         removeFailedSubscribed(url, listener);
         try {
             // Sending a subscription request to the server side
+            // 订阅
             doSubscribe(url, listener);
         } catch (Exception e) {
             Throwable t = e;
