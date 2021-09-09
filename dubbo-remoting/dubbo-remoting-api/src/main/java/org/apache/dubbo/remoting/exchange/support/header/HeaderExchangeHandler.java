@@ -76,8 +76,10 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
     }
 
     void handleRequest(final ExchangeChannel channel, Request req) throws RemotingException {
+        // 通过请求id，构建一个Response
         Response res = new Response(req.getId(), req.getVersion());
         if (req.isBroken()) {
+            // 获取请求信息 方法名之类的
             Object data = req.getData();
 
             String msg;
@@ -97,6 +99,7 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
         // find handler by message class.
         Object msg = req.getData();
         try {
+            // 最终调用 DubboProtocol reply
             CompletionStage<Object> future = handler.reply(channel, msg);
             future.whenComplete((appResult, t) -> {
                 try {
@@ -164,6 +167,7 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
 
     @Override
     public void received(Channel channel, Object message) throws RemotingException {
+        // 接收到消息，准备处理请求
         final ExchangeChannel exchangeChannel = HeaderExchangeChannel.getOrAddChannel(channel);
         if (message instanceof Request) {
             // handle request.

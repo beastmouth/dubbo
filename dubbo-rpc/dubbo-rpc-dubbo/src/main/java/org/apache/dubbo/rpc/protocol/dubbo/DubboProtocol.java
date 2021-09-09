@@ -120,6 +120,7 @@ public class DubboProtocol extends AbstractProtocol {
             }
 
             Invocation inv = (Invocation) message;
+            // 根据inv获取Invoker   去exporterMap中找
             Invoker<?> invoker = getInvoker(channel, inv);
             // need to consider backward-compatibility if it's a callback
             if (Boolean.TRUE.toString().equals(inv.getObjectAttachments().get(IS_CALLBACK_SERVICE_INVOKE))) {
@@ -145,6 +146,7 @@ public class DubboProtocol extends AbstractProtocol {
                 }
             }
             RpcContext.getContext().setRemoteAddress(channel.getRemoteAddress());
+            // 调用对应的invoke方法
             Result result = invoker.invoke(inv);
             return result.thenApply(Function.identity());
         }
