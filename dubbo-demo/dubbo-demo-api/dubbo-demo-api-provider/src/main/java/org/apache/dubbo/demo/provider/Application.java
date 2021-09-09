@@ -17,14 +17,17 @@
 package org.apache.dubbo.demo.provider;
 
 import org.apache.dubbo.config.ApplicationConfig;
+import org.apache.dubbo.config.ReferenceConfig;
 import org.apache.dubbo.config.RegistryConfig;
 import org.apache.dubbo.config.ServiceConfig;
 import org.apache.dubbo.config.bootstrap.DubboBootstrap;
+import org.apache.dubbo.config.utils.ReferenceConfigCache;
 import org.apache.dubbo.demo.DemoService;
 import org.apache.dubbo.demo.GreetingService;
 
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class Application {
     public static void main(String[] args) throws Exception {
@@ -54,6 +57,14 @@ public class Application {
         service2.setRef(new GreetingServiceImpl());
         service2.setId(UUID.randomUUID().toString());
 
+        // 模拟injvm
+        ReferenceConfig<DemoService> reference = new ReferenceConfig<>();
+        reference.setInterface(DemoService.class);
+        reference.setGeneric("false");
+
+        Thread testInJvmThread = new Thread(new TestInJvm(reference));
+        testInJvmThread.start();
+
         // 获取DubboBootstrap实例，这是个单例的对象
         DubboBootstrap bootstrap = DubboBootstrap.getInstance();
         // 生成一个 ApplicationConfig 的实例、指定ZK地址以及ServiceConfig实例
@@ -61,6 +72,7 @@ public class Application {
                 .registry(new RegistryConfig("zookeeper://127.0.0.1:2181"))
                 .service(service)
                 .service(service2)
+                .reference(reference)
                 .start()
                 .await();
     }
@@ -75,5 +87,25 @@ public class Application {
 
         System.out.println("dubbo service started");
         new CountDownLatch(1).await();
+    }
+}
+
+class TestInJvm implements Runnable {
+    private final ReferenceConfig<DemoService> reference;
+
+    public TestInJvm(ReferenceConfig<DemoService> reference) {
+        this.reference = reference;
+    }
+
+    @Override
+    public void run() {
+        try {
+            TimeUnit.SECONDS.sleep(10);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        DemoService demoService = ReferenceConfigCache.getCache().get(reference);
+        String message = demoService.sayHello("dubbo");
+        System.out.println(message);
     }
 }
