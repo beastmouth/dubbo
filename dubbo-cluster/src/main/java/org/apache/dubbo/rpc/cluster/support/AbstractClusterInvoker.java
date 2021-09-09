@@ -259,12 +259,12 @@ public abstract class AbstractClusterInvoker<T> implements ClusterInvoker<T> {
             ((RpcInvocation) invocation).addObjectAttachments(contextAttachments);
         }
 
-        // 获取invoke列表
+        // 实际上就是directroy.list 通过方法名寻找invokers 里面回去做一些过滤 获取过滤后的invoke列表
         List<Invoker<T>> invokers = list(invocation);
         // 根据@SPI选择负载均衡的策略
         LoadBalance loadbalance = initLoadBalance(invokers, invocation);
         RpcUtils.attachInvocationIdIfAsync(getUrl(), invocation);
-        return doInvoke(invocation, invokers, loadbalance);
+        return doInvoke(invocation, invokers, loadbalance); // 调用子类的方法
     }
 
     protected void checkWhetherDestroyed() {
