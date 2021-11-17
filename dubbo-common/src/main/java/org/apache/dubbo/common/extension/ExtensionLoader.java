@@ -1109,6 +1109,7 @@ public class ExtensionLoader<T> {
     @SuppressWarnings("unchecked")
     private T createAdaptiveExtension() {
         try {
+            // newInstance 生成扩展接口的适配器类的实例（后续适配器类实例会根据URL中的参数动态选择对应的SPI实现）
             return injectExtension((T) getAdaptiveExtensionClass().newInstance());
         } catch (Exception e) {
             throw new IllegalStateException("Can't create adaptive extension " + type + ", cause: " + e.getMessage(), e);
@@ -1123,10 +1124,16 @@ public class ExtensionLoader<T> {
         return cachedAdaptiveClass = createAdaptiveExtensionClass();
     }
 
+    /**
+     * 该方法将源文件动态编译为Class对象
+     */
     private Class<?> createAdaptiveExtensionClass() {
+        // 根据SPI扩展接口生成其对应的适配器类的源码 例 Protocol$Adaptive 类（生成源代码）
         String code = new AdaptiveClassCodeGenerator(type, cachedDefaultName).generate();
         ClassLoader classLoader = findClassLoader();
+        // 利用增强SPI选择扩展接口Compiler的实现 默认 JavassistCompiler
         org.apache.dubbo.common.compiler.Compiler compiler = ExtensionLoader.getExtensionLoader(org.apache.dubbo.common.compiler.Compiler.class).getAdaptiveExtension();
+        // 根据源代码和编译器生成 Protocol$Adaptive的Class对象
         return compiler.compile(code, classLoader);
     }
 
