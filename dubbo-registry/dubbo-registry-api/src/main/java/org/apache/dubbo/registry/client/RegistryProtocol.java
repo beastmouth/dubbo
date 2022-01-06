@@ -481,10 +481,12 @@ public class RegistryProtocol implements Protocol {
             directory.setRegisteredConsumerUrl(urlToRegistry);
             registry.register(directory.getRegisteredConsumerUrl());
         }
+        // 建立路由规则链
         directory.buildRouterChain(urlToRegistry);
         // 订阅provider
         directory.subscribe(toSubscribeUrl(urlToRegistry));
 
+        // 包装集群容错策略到invoker
         return (ClusterInvoker<T>) cluster.join(directory);
     }
 

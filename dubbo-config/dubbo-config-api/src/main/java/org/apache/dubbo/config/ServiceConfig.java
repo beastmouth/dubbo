@@ -197,15 +197,17 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         serviceMetadata.setServiceInterfaceName(getInterface());
         serviceMetadata.setTarget(getRef());
 
+        // 是否需要暴露服务
         if (!shouldExport()) {
             return;
         }
 
+        // 是否延迟暴露（发布）
         if (shouldDelay()) {
             // 延迟暴露
             DELAY_EXPORT_EXECUTOR.schedule(this::doExport, getDelay(), TimeUnit.MILLISECONDS);
         } else {
-            // 暴露
+            // 直接暴露
             doExport();
         }
 
@@ -417,6 +419,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
             } // end of methods for
         }
 
+        // 如果为泛化调用，设置泛型类型
         if (ProtocolUtils.isGeneric(generic)) {
             map.put(GENERIC_KEY, generic);
             map.put(METHODS_KEY, ANY_VALUE);
@@ -426,6 +429,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                 map.put(REVISION_KEY, revision);
             }
 
+            // 暴露的方法
             String[] methods = Wrapper.getWrapper(interfaceClass).getMethodNames();
             if (methods.length == 0) {
                 logger.warn("No method found in service interface " + interfaceClass.getName());
@@ -469,9 +473,11 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
 
         String scope = url.getParameter(SCOPE_KEY);
         // don't export when none is configured
+        // 如果scope为SCOPE_NONE不暴露服务
         if (!SCOPE_NONE.equalsIgnoreCase(scope)) {
 
             // export to local if the config is not remote (export to remote only when config is remote)
+            // 本地暴露
             if (!SCOPE_REMOTE.equalsIgnoreCase(scope)) {
                 // 有一个本地暴露，只所以需要本地暴露是考虑到同一个服务内假如需要调用当前的dubbo接口，则可以直接走jvm内部(injvm),减少网络间的通讯
                 // 修改url协议为injvm
@@ -480,7 +486,9 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
             // export to remote if the config is not local (export to local only when config is local)
             // 远程暴露
             if (!SCOPE_LOCAL.equalsIgnoreCase(scope)) {
+                // 注册中心不为空
                 if (CollectionUtils.isNotEmpty(registryURLs)) {
+                    // 遍历注册中心
                     for (URL registryURL : registryURLs) {
                         //if protocol is only injvm ,not register
                         if (LOCAL_PROTOCOL.equalsIgnoreCase(url.getProtocol())) {
@@ -515,6 +523,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                         exporters.add(exporter);
                     }
                 } else {
+                    // 直连方式
                     if (logger.isInfoEnabled()) {
                         logger.info("Export dubbo service " + interfaceClass.getName() + " to url " + url);
                     }
@@ -525,6 +534,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                     exporters.add(exporter);
                 }
 
+                // 元数据存储
                 MetadataUtils.publishServiceDefinition(url);
             }
         }
