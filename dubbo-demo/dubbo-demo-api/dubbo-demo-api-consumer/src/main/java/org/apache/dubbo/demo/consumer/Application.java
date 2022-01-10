@@ -22,7 +22,10 @@ import org.apache.dubbo.config.RegistryConfig;
 import org.apache.dubbo.config.bootstrap.DubboBootstrap;
 import org.apache.dubbo.config.utils.ReferenceConfigCache;
 import org.apache.dubbo.demo.DemoService;
+import org.apache.dubbo.demo.TestVoidService;
 import org.apache.dubbo.rpc.service.GenericService;
+
+import java.util.Arrays;
 
 public class Application {
     public static void main(String[] args) {
@@ -43,11 +46,18 @@ public class Application {
         reference.setInterface(DemoService.class);
         reference.setGeneric("true");
 
+        // 创建ReferenceConfig,其中指定了引用的接口DemoService
+        ReferenceConfig<TestVoidService> reference2 = new ReferenceConfig<>();
+        reference2.setInterface(TestVoidService.class);
+        reference2.setGeneric("true");
+
         // 创建DubboBootstrap，指定ApplicationConfig以及RegistryConfig
         DubboBootstrap bootstrap = DubboBootstrap.getInstance();
         bootstrap.application(new ApplicationConfig("dubbo-demo-api-consumer"))
                 .registry(new RegistryConfig("zookeeper://127.0.0.1:2181"))
-                .reference(reference)
+                .references(Arrays.asList(reference, reference2))
+//                .reference(reference)
+//                .reference(reference2)
                 .start();
 
         // 获取DemoService实例并调用其方法
@@ -60,6 +70,10 @@ public class Application {
         Object genericInvokeResult = genericService.$invoke("sayHello", new String[] { String.class.getName() },
                 new Object[] { "dubbo generic invoke" });
         System.out.println(genericInvokeResult);
+
+        TestVoidService voidService = ReferenceConfigCache.getCache().get(reference2);
+        voidService.hello();
+
     }
 
     private static void runWithRefer() {

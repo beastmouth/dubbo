@@ -24,6 +24,7 @@ import org.apache.dubbo.config.bootstrap.DubboBootstrap;
 import org.apache.dubbo.config.utils.ReferenceConfigCache;
 import org.apache.dubbo.demo.DemoService;
 import org.apache.dubbo.demo.GreetingService;
+import org.apache.dubbo.demo.TestVoidService;
 
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -57,6 +58,14 @@ public class Application {
         service2.setRef(new GreetingServiceImpl());
         service2.setId(UUID.randomUUID().toString());
 
+        // 创建一个ServiceConfig的实例，泛型参数是业务接口实现类 即DemoServiceImpl
+        ServiceConfig<TestVoidServiceImpl> service3 = new ServiceConfig<>();
+        // 指定业务接口
+        service3.setInterface(TestVoidService.class);
+        // 指定业务接口的实现，由该对象来处理Consumer的请求
+        service3.setRef(new TestVoidServiceImpl());
+        service3.setId(UUID.randomUUID().toString());
+
         // 模拟injvm
         ReferenceConfig<DemoService> reference = new ReferenceConfig<>();
         reference.setInterface(DemoService.class);
@@ -72,6 +81,7 @@ public class Application {
                 .registry(new RegistryConfig("zookeeper://127.0.0.1:2181"))
                 .service(service)
                 .service(service2)
+                .service(service3)
                 .reference(reference)
                 .start()
                 .await();
