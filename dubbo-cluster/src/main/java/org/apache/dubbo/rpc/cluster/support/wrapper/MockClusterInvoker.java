@@ -114,6 +114,10 @@ public class MockClusterInvoker<T> implements ClusterInvoker<T> {
                         throw  rpcException;
                     }else {
                         // 调用失败，执行 mock 逻辑
+                        // 即 服务降级逻辑
+                        // ps 这里说一下服务熔断与服务降级的区别
+                        // 熔断是直接不进行服务调用，然后降级是调用失败的时候，不报错，返回我们预设的值
+                        // 一般来说，熔断和降级通常是配合使用的，当我们调用失败到了一定程度，服务就会直接熔断，不再发起远程调用
                         result = doMockInvoke(invocation, rpcException);
                     }
                 }

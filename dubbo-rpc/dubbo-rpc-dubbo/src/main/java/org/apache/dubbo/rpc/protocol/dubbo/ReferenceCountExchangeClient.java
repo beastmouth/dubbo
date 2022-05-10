@@ -87,6 +87,7 @@ final class ReferenceCountExchangeClient implements ExchangeClient {
 
     @Override
     public CompletableFuture<Object> request(Object request, int timeout, ExecutorService executor) throws RemotingException {
+        // 直接调用被装饰对象的同签名方法
         return client.request(request, timeout, executor);
     }
 

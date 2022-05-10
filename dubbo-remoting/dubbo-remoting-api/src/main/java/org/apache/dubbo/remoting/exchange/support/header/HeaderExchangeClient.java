@@ -61,6 +61,7 @@ public class HeaderExchangeClient implements ExchangeClient {
         if (startTimer) {
             URL url = client.getUrl();
             startReconnectTask(url);
+            // 心跳检测
             startHeartBeatTask(url);
         }
     }
@@ -87,6 +88,7 @@ public class HeaderExchangeClient implements ExchangeClient {
 
     @Override
     public CompletableFuture<Object> request(Object request, ExecutorService executor) throws RemotingException {
+        // 直接 HeaderExchangeChannel 对象的同名方法
         return channel.request(request, executor);
     }
 
