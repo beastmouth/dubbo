@@ -54,7 +54,7 @@ public class Application {
         // 创建DubboBootstrap，指定ApplicationConfig以及RegistryConfig
         DubboBootstrap bootstrap = DubboBootstrap.getInstance();
         bootstrap.application(new ApplicationConfig("dubbo-demo-api-consumer"))
-                .registry(new RegistryConfig("zookeeper://192.168.196.146:2181"))
+                .registry(new RegistryConfig("zookeeper://127.0.0.1:2181"))
                 .references(Arrays.asList(reference, reference2))
 //                .reference(reference)
 //                .reference(reference2)

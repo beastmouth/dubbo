@@ -308,6 +308,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         if (StringUtils.isEmpty(path)) {
             path = interfaceName;
         }
+        // 导出服务
         doExportUrls();
     }
 
@@ -327,6 +328,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         // 获取当前服务的注册中心URL（支持多注册中心）
         List<URL> registryURLs = ConfigValidationUtils.loadRegistries(this, true);
 
+        // 遍历协议，并在每个协议下导出服务
         for (ProtocolConfig protocolConfig : protocols) {
             String pathKey = URL.buildKey(getContextPath(protocolConfig)
                     .map(p -> p + "/" + path)
@@ -418,6 +420,26 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                 }
             } // end of methods for
         }
+        // // 获取 ArgumentConfig 列表
+        // for (遍历 ArgumentConfig 列表) {
+        //    if (type 不为 null，也不为空串) {    // 分支1
+        //        1. 通过反射获取 interfaceClass 的方法列表
+        //        for (遍历方法列表) {
+        //            1. 比对方法名，查找目标方法
+        //        	  2. 通过反射获取目标方法的参数类型数组 argtypes
+        //            if (index != -1) {    // 分支2
+        //                1. 从 argtypes 数组中获取下标 index 处的元素 argType
+        //                2. 检测 argType 的名称与 ArgumentConfig 中的 type 属性是否一致
+        //                3. 添加 ArgumentConfig 字段信息到 map 中，或抛出异常
+        //            } else {    // 分支3
+        //                1. 遍历参数类型数组 argtypes，查找 argument.type 类型的参数
+        //                2. 添加 ArgumentConfig 字段信息到 map 中
+        //            }
+        //        }
+        //    } else if (index != -1) {    // 分支4
+        //		1. 添加 ArgumentConfig 字段信息到 map 中
+        //    }
+        //}
 
         // 如果为泛化调用，设置泛型类型
         if (ProtocolUtils.isGeneric(generic)) {
