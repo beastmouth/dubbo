@@ -23,5 +23,9 @@ public class CarMakerTest {
         ExtensionLoader<CarMaker> extensionLoader = ExtensionLoader.getExtensionLoader(CarMaker.class);
         Car car = extensionLoader.getExtension("race").makeCar(url);
         System.out.println(car.toString());
+
+        url = url.addParameter("wheel", "bwheel");
+        car = extensionLoader.getExtension("race").makeCar(url);
+        System.out.println(car.toString());
     }
 }

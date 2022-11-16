@@ -12,7 +12,7 @@ public class BWheelMaker implements WheelMaker {
     @Override
     public Wheel makeWheel(URL url) {
         Wheel wheel = new Wheel();
-        wheel.setName("a wheel");
+        wheel.setName("b wheel");
         return wheel;
     }
 }
