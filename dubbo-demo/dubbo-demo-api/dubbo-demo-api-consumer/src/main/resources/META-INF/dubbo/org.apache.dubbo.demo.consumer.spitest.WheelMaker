@@ -1,0 +1,2 @@
+awheel = org.apache.dubbo.demo.consumer.spitest.impl.AWheelMaker
+bwheel = org.apache.dubbo.demo.consumer.spitest.impl.BWheelMaker
