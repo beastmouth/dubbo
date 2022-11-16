@@ -1,1 +1,2 @@
 race = org.apache.dubbo.demo.consumer.spitest.impl.RaceCarMaker
+wrapper = org.apache.dubbo.demo.consumer.spitest.impl.WrapperCarMaker
