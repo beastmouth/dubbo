@@ -69,7 +69,7 @@ public class ProtocolFilterWrapper implements Protocol {
 
     @Override
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
-        if (UrlUtils.isRegistry(invoker.getUrl())) {
+        if (UrlUtils.isRegistry(invoker.getUrl())) { // demo中默认dubbo协议，注册中心方式暴露
             return protocol.export(invoker);
         }
         return protocol.export(buildInvokerChain(invoker, SERVICE_FILTER_KEY, CommonConstants.PROVIDER));

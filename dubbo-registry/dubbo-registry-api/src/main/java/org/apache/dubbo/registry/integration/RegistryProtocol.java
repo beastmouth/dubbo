@@ -195,10 +195,10 @@ public class RegistryProtocol implements Protocol {
     }
 
     @Override
-    public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcException {
-        URL registryUrl = getRegistryUrl(originInvoker);
+    public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcException { // 注册中心暴露
+        URL registryUrl = getRegistryUrl(originInvoker); // 注册中心url
         // url to export locally
-        URL providerUrl = getProviderUrl(originInvoker);
+        URL providerUrl = getProviderUrl(originInvoker); // 服务提供者url
 
         // Subscribe the override data
         // FIXME When the provider subscribes, it will affect the scene : a certain JVM exposes the service and call
@@ -219,7 +219,7 @@ public class RegistryProtocol implements Protocol {
         // decide if we need to delay publish
         boolean register = providerUrl.getParameter(REGISTER_KEY, true);
         if (register) {
-            registry.register(registeredProviderUrl);
+            registry.register(registeredProviderUrl); // 注册接口url到注册中心
         }
 
         // register stated url on provider model

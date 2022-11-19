@@ -894,7 +894,7 @@ public class DubboBootstrap {
                 registerServiceInstance();
             }
 
-            referServices();
+            referServices(); // 引用服务
             if (asyncExportingFutures.size() > 0) {
                 new Thread(() -> {
                     try {

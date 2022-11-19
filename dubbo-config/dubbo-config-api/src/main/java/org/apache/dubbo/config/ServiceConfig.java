@@ -214,9 +214,9 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
             bootstrap.initialize();
         }
 
-        checkAndUpdateSubConfigs();
+        checkAndUpdateSubConfigs(); // 校验并更新子配置
 
-        initServiceMetadata(provider);
+        initServiceMetadata(provider); // 更新服务元数据
         serviceMetadata.setServiceType(getInterfaceClass());
         serviceMetadata.setTarget(getRef());
         serviceMetadata.generateServiceKey();
@@ -235,7 +235,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                 }
             }, getDelay(), TimeUnit.MILLISECONDS);
         } else {
-            doExport();
+            doExport(); // 暴露服务
         }
 
         exported();
@@ -318,25 +318,25 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void doExportUrls() {
         ServiceRepository repository = ApplicationModel.getServiceRepository();
-        ServiceDescriptor serviceDescriptor = repository.registerService(getInterfaceClass());
+        ServiceDescriptor serviceDescriptor = repository.registerService(getInterfaceClass()); // 将暴露的接口加入缓存中,也会将其加入到repository中
         repository.registerProvider(
-                getUniqueServiceName(),
+                getUniqueServiceName(), // 接口名
                 ref,
                 serviceDescriptor,
                 this,
                 serviceMetadata
         );
+        // registry://local.huangbangjing.cn:2181/org.apache.dubbo.registry.RegistryService?application=dubbo-demo-api-provider&dubbo=2.0.2&pid=32237&registry=zookeeper&timestamp=1668839020826
+        List<URL> registryURLs = ConfigValidationUtils.loadRegistries(this, true); // 注册的URL
 
-        List<URL> registryURLs = ConfigValidationUtils.loadRegistries(this, true);
-
-        int protocolConfigNum = protocols.size();
+        int protocolConfigNum = protocols.size(); // 协议列表
         for (ProtocolConfig protocolConfig : protocols) {
-            String pathKey = URL.buildKey(getContextPath(protocolConfig)
+            String pathKey = URL.buildKey(getContextPath(protocolConfig) //接口信息
                     .map(p -> p + "/" + path)
                     .orElse(path), group, version);
             // In case user specified path, register service one more time to map it to path.
-            repository.registerService(pathKey, interfaceClass);
-            doExportUrlsFor1Protocol(protocolConfig, registryURLs, protocolConfigNum);
+            repository.registerService(pathKey, interfaceClass); // 往缓存（service）加入接口映射信息
+            doExportUrlsFor1Protocol(protocolConfig, registryURLs, protocolConfigNum); // 真正的暴露操作
         }
     }
 
@@ -477,10 +477,10 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
 
             // export to local if the config is not remote (export to remote only when config is remote)
             if (!SCOPE_REMOTE.equalsIgnoreCase(scope)) {
-                exportLocal(url);
+                exportLocal(url); // 先本地暴露
             }
             // export to remote if the config is not local (export to local only when config is local)
-            if (!SCOPE_LOCAL.equalsIgnoreCase(scope)) {
+            if (!SCOPE_LOCAL.equalsIgnoreCase(scope)) { // 再远程暴露
                 if (CollectionUtils.isNotEmpty(registryURLs)) {
                     for (URL registryURL : registryURLs) {
                         if (SERVICE_REGISTRY_PROTOCOL.equals(registryURL.getProtocol())) {
@@ -511,11 +511,11 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                             registryURL = registryURL.addParameter(PROXY_KEY, proxy);
                         }
 
-                        Invoker<?> invoker = PROXY_FACTORY.getInvoker(ref, (Class) interfaceClass,
-                                registryURL.addParameterAndEncoded(EXPORT_KEY, url.toFullString()));
-                        DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
+                        Invoker<?> invoker = PROXY_FACTORY.getInvoker(ref, (Class) interfaceClass, // PROXT_FACTORY.getInvoker被@Adaptive修饰，每次根据URL动态获取，默认@SPI是javassist，不传默认为这个
+                                registryURL.addParameterAndEncoded(EXPORT_KEY, url.toFullString())); // 生成Invoker代理类
+                        DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this); // 元数据包装Invoker
 
-                        Exporter<?> exporter = PROTOCOL.export(wrapperInvoker);
+                        Exporter<?> exporter = PROTOCOL.export(wrapperInvoker); // 暴露服务操作（注册接口，打开nettyServer）
                         exporters.add(exporter);
                     }
                 } else {
@@ -547,8 +547,8 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                 .build();
         Exporter<?> exporter = PROTOCOL.export(
                 PROXY_FACTORY.getInvoker(ref, (Class) interfaceClass, local));
-        exporters.add(exporter);
-        logger.info("Export dubbo service " + interfaceClass.getName() + " to local registry url : " + local);
+        exporters.add(exporter); // 加入exporter中
+        logger.info("Export dubbo service " + interfaceClass.getName() + " to local registry url : " + local); // injvm://127.0.0.1/org.apache.dubbo.demo.DemoService.....
     }
 
     /**

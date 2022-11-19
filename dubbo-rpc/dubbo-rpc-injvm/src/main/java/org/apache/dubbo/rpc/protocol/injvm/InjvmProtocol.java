@@ -91,7 +91,7 @@ public class InjvmProtocol extends AbstractProtocol implements Protocol{
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
         String serviceKey = invoker.getUrl().getServiceKey();
         InjvmExporter<T> tInjvmExporter = new InjvmExporter<>(invoker, serviceKey, exporterMap);
-        exporterMap.addExportMap(serviceKey, tInjvmExporter);
+        exporterMap.addExportMap(serviceKey, tInjvmExporter); // 加入缓存中
         return tInjvmExporter;
     }
 

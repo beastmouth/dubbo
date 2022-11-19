@@ -187,10 +187,10 @@ public class ConfigValidationUtils {
         // check && override if necessary
         List<URL> registryList = new ArrayList<URL>();
         ApplicationConfig application = interfaceConfig.getApplication();
-        List<RegistryConfig> registries = interfaceConfig.getRegistries();
+        List<RegistryConfig> registries = interfaceConfig.getRegistries(); // 注册中心信息
         if (CollectionUtils.isNotEmpty(registries)) {
             for (RegistryConfig config : registries) {
-                String address = config.getAddress();
+                String address = config.getAddress(); // 注册中心地址
                 if (StringUtils.isEmpty(address)) {
                     address = ANYHOST_VALUE;
                 }
