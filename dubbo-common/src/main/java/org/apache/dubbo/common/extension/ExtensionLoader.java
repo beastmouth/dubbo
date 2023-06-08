@@ -159,19 +159,24 @@ public class ExtensionLoader<T> {
 
     @SuppressWarnings("unchecked")
     public static <T> ExtensionLoader<T> getExtensionLoader(Class<T> type) {
+        // 这里参数类型为空
         if (type == null) {
             throw new IllegalArgumentException("Extension type == null");
         }
+        // 扩展类型不为接口也要抛出异常
         if (!type.isInterface()) {
             throw new IllegalArgumentException("Extension type (" + type + ") is not an interface!");
         }
+        // 这个判断逻辑是判断这个扩展接口是有@SPI注解
         if (!withExtensionAnnotation(type)) {
             throw new IllegalArgumentException("Extension type (" + type +
                     ") is not an extension, because it is NOT annotated with @" + SPI.class.getSimpleName() + "!");
         }
 
+        // 被加载的扩展类型对应的扩展加载器会放到extensionLoadersMap这个ConcurrentHashMap类型的集合中方便缓存
         ExtensionLoader<T> loader = (ExtensionLoader<T>) EXTENSION_LOADERS.get(type);
         if (loader == null) {
+            // 首次访问的时候当前类型的扩展加载器类型肯定是空的,创建扩展加载器
             EXTENSION_LOADERS.putIfAbsent(type, new ExtensionLoader<T>(type));
             loader = (ExtensionLoader<T>) EXTENSION_LOADERS.get(type);
         }
@@ -426,6 +431,7 @@ public class ExtensionLoader<T> {
      */
     @SuppressWarnings("unchecked")
     public T getExtension(String name) {
+        // 这里并不能看到什么,只多传了个参数wrap为true调用另外一个重载的方法
         return getExtension(name, true);
     }
 
@@ -433,6 +439,7 @@ public class ExtensionLoader<T> {
         if (StringUtils.isEmpty(name)) {
             throw new IllegalArgumentException("Extension name == null");
         }
+        // 扩展名字为true则加载默认扩展
         if ("true".equals(name)) {
             return getDefaultExtension();
         }
@@ -442,6 +449,7 @@ public class ExtensionLoader<T> {
             synchronized (holder) {
                 instance = holder.get();
                 if (instance == null) {
+                    // 创建扩展对象
                     instance = createExtension(name, wrap);
                     holder.set(instance);
                 }
@@ -603,17 +611,22 @@ public class ExtensionLoader<T> {
     public T getAdaptiveExtension() {
         Object instance = cachedAdaptiveInstance.get();
         if (instance == null) {
+            // 创建异常则抛出异常直接返回(多线程场景下可能第一个线程异常了第二个线程进来之后走到这里)
             if (createAdaptiveInstanceError != null) {
                 throw new IllegalStateException("Failed to create adaptive instance: " +
                         createAdaptiveInstanceError.toString(),
                         createAdaptiveInstanceError);
             }
 
+            // 加锁排队 (单例模式创建对象的思想 双重校验锁)
             synchronized (cachedAdaptiveInstance) {
+                // 加锁的时候对象都是空的,进来之后先判断下防止重复创建
                 instance = cachedAdaptiveInstance.get();
                 if (instance == null) {
                     try {
+                        // 根据SPI机制获取类型,创建对象
                         instance = createAdaptiveExtension();
+                        // 存入缓存
                         cachedAdaptiveInstance.set(instance);
                     } catch (Throwable t) {
                         createAdaptiveInstanceError = t;
@@ -652,28 +665,39 @@ public class ExtensionLoader<T> {
 
     @SuppressWarnings("unchecked")
     private T createExtension(String name, boolean wrap) {
+        // 扩展的创建的第一步扫描所有jar中的扩展实现,这里扫描完之后获取对应扩展名字的扩展实现类型的Class对象
         Class<?> clazz = getExtensionClasses().get(name);
         if (clazz == null || unacceptableExceptions.contains(name)) {
             throw findException(name);
         }
         try {
+            // 当前扩展对象是否已经创建过了则直接从缓存中获取
             T instance = (T) EXTENSION_INSTANCES.get(clazz);
             if (instance == null) {
+                // 第一次获取缓存中肯定没有则创建扩展对象然后缓存起来
                 EXTENSION_INSTANCES.putIfAbsent(clazz, clazz.getDeclaredConstructor().newInstance());
                 instance = (T) EXTENSION_INSTANCES.get(clazz);
             }
+            // 注入扩展自适应方法,这个方法前面讲自适应扩展时候说了,注入自适应扩展方法的自适应扩展对象
             injectExtension(instance);
 
 
+            // 是否开启了wrap
+            // Dubbo通过Wrapper实现AOP的方法
             if (wrap) {
 
                 List<Class<?>> wrapperClassesList = new ArrayList<>();
+                // wrap类型排序 这个wrap类型是如何来的呢,在前面扫描扩展类型的时候如果当前扩展类型不是Adaptive注解修饰的,
+                // 并且当前类型type有个构造器参数是type自身的也是前面加载扩展类型时候说的装饰器模式 可以参考DubboProtocol的构造器
                 if (cachedWrapperClasses != null) {
                     wrapperClassesList.addAll(cachedWrapperClasses);
+                    // 根据Wrapper注解的order值来进行排序值越小越在列表的前面
                     wrapperClassesList.sort(WrapperComparator.COMPARATOR);
+                    // 反转之后值越大就会在列表的前面
                     Collections.reverse(wrapperClassesList);
                 }
 
+                // 从缓存中查到了wrapper扩展则遍历这些wrap扩展进行筛选
                 if (CollectionUtils.isNotEmpty(wrapperClassesList)) {
                     for (Class<?> wrapperClass : wrapperClassesList) {
                         Wrapper wrapper = wrapperClass.getAnnotation(Wrapper.class);
@@ -704,7 +728,10 @@ public class ExtensionLoader<T> {
         }
 
         try {
+            // 获取当前对象的当前类的所有方法
             for (Method method : instance.getClass().getMethods()) {
+                // 是否为set方法 不是的话则跳过,在这里合法的set方法满足3个条件:
+                // set开头,参数只有一个,public修饰
                 if (!isSetter(method)) {
                     continue;
                 }
@@ -712,10 +739,12 @@ public class ExtensionLoader<T> {
                 /*
                  * Check {@link DisableInject} to see if we need autowire injection for this property
                  */
+                // 方法上面是否有注解DisableInject修饰,这种情况也直接跳过
                 if (method.getAnnotation(DisableInject.class) != null) {
                     continue;
                 }
 
+                // 方法的参数如果是原生类型也跳过
                 Class<?> pt = method.getParameterTypes()[0];
                 if (ReflectUtils.isPrimitives(pt)) {
                     continue;
@@ -726,6 +755,7 @@ public class ExtensionLoader<T> {
                  * {@link Inject#enable} == false will skip inject property phase
                  * {@link Inject#InjectType#ByName} default inject by name
                  */
+                // 获取set方法对应的成员变量如setProtocol 属性为protocol
                 String property = getSetterProperty(method);
                 Inject inject = method.getAnnotation(Inject.class);
                 if (inject == null) {
@@ -802,12 +832,16 @@ public class ExtensionLoader<T> {
     }
 
     private Map<String, Class<?>> getExtensionClasses() {
+        // 缓存中查询扩展类型是否存在
         Map<String, Class<?>> classes = cachedClasses.get();
         if (classes == null) {
+            // 单例模式双重校验锁判断
             synchronized (cachedClasses) {
                 classes = cachedClasses.get();
                 if (classes == null) {
+                    // 加载扩展类型
                     classes = loadExtensionClasses();
+                    // 将我们扫描到的扩展类型存入成员变量cachedClasses中
                     cachedClasses.set(classes);
                 }
             }
@@ -819,17 +853,29 @@ public class ExtensionLoader<T> {
      * synchronized in getExtensionClasses
      */
     private Map<String, Class<?>> loadExtensionClasses() {
+        // 缓存默认的扩展名到成员变量cachedDefaultName中
         cacheDefaultExtensionName();
 
+        // 加载到的扩展集合
         Map<String, Class<?>> extensionClasses = new HashMap<>();
 
+        // 扩展策略,在4.3章节中我们介绍了这个类型的UML与说明
+        // LoadingStrategy扩展加载策略,目前有3个扩展加载策略
+        // DubboInternalLoadingStrategy:Dubbo内置的扩展加载策略,将加载文件目录为META-INF/dubbo/internal/的扩展
+        // DubboLoadingStrategy:Dubbo普通的扩展加载策略,将加载目录为META-INF/dubbo/的扩展
+        // ServicesLoadingStrategy:JAVA SPI加载策略 ,将加载目录为META-INF/services/的扩展
         for (LoadingStrategy strategy : strategies) {
+            // 根据策略从指定文件目录中加载扩展类型
             loadDirectory(extensionClasses, strategy.directory(), type.getName(), strategy.preferExtensionClassLoader(),
                     strategy.overridden(), strategy.excludedPackages());
             loadDirectory(extensionClasses, strategy.directory(), type.getName().replace("org.apache", "com.alibaba"),
                     strategy.preferExtensionClassLoader(), strategy.overridden(), strategy.excludedPackages());
         }
 
+        // 通过loadDirectory扫描 扫描到了ExtensionInjector类型的扩展实现类有3个 我们将会得到这样一个集合例子:
+        // "spring" ->  "class org.apache.dubbo.config.spring.extension.SpringExtensionInjector"
+        // "scopeBean" ->  "class org.apache.dubbo.common.beans.ScopeBeanExtensionInjector"
+        // "spi" ->  "class org.apache.dubbo.common.extension.inject.SpiExtensionInjector"
         return extensionClasses;
     }
 
@@ -861,12 +907,14 @@ public class ExtensionLoader<T> {
 
     private void loadDirectory(Map<String, Class<?>> extensionClasses, String dir, String type,
                                boolean extensionLoaderClassLoaderFirst, boolean overridden, String... excludedPackages) {
+        //扩展目录 + 扩展类型全路径 比如: META-INF/dubbo/internal/org.apache.dubbo.common.extension.ExtensionInjector
         String fileName = dir + type;
         try {
             Enumeration<java.net.URL> urls = null;
             ClassLoader classLoader = findClassLoader();
 
             // try to load from ExtensionLoader's ClassLoader first
+            // 是否优先使用扩展加载器的 类加载器
             if (extensionLoaderClassLoaderFirst) {
                 ClassLoader extensionLoaderClassLoader = ExtensionLoader.class.getClassLoader();
                 if (ClassLoader.getSystemClassLoader() != extensionLoaderClassLoader) {
@@ -1085,18 +1133,23 @@ public class ExtensionLoader<T> {
     }
 
     private Class<?> getAdaptiveExtensionClass() {
+        // 获取扩展类型,将扩展类型存入成员变量cachedClasses中进行缓存
         getExtensionClasses();
         if (cachedAdaptiveClass != null) {
             return cachedAdaptiveClass;
         }
+        // 扩展实现类型没有一个这个自适应注解Adaptive时候会走到这里
         return cachedAdaptiveClass = createAdaptiveExtensionClass();
     }
 
     private Class<?> createAdaptiveExtensionClass() {
+        // 创建一个代码生成器,来生成代码
         String code = new AdaptiveClassCodeGenerator(type, cachedDefaultName).generate();
         ClassLoader classLoader = findClassLoader();
+        // 获取编译器
         org.apache.dubbo.common.compiler.Compiler compiler =
                 ExtensionLoader.getExtensionLoader(org.apache.dubbo.common.compiler.Compiler.class).getAdaptiveExtension();
+        // 生成的代码进行编译
         return compiler.compile(code, classLoader);
     }
 
