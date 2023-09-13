@@ -462,8 +462,8 @@ public class RegistryProtocol implements Protocol {
     @Override
     @SuppressWarnings("unchecked")
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
-        url = getRegistryUrl(url);
-        Registry registry = getRegistry(url);
+        url = getRegistryUrl(url); // 获取注册中心url
+        Registry registry = getRegistry(url); // 获取注册中心
         if (RegistryService.class.equals(type)) {
             return proxyFactory.getInvoker((T) registry, type, url);
         }
@@ -478,12 +478,12 @@ public class RegistryProtocol implements Protocol {
         }
 
         Cluster cluster = Cluster.getCluster(qs.get(CLUSTER_KEY));
-        return doRefer(cluster, registry, type, url, qs);
+        return doRefer(cluster, registry, type, url, qs); // 引用服务
     }
 
     protected <T> Invoker<T> doRefer(Cluster cluster, Registry registry, Class<T> type, URL url, Map<String, String> parameters) {
         URL consumerUrl = new URL(CONSUMER_PROTOCOL, parameters.remove(REGISTER_IP_KEY), 0, type.getName(), parameters);
-        ClusterInvoker<T> migrationInvoker = getMigrationInvoker(this, cluster, registry, type, url, consumerUrl);
+        ClusterInvoker<T> migrationInvoker = getMigrationInvoker(this, cluster, registry, type, url, consumerUrl); // 获取invoker
         return interceptInvoker(migrationInvoker, url, consumerUrl);
     }
 
@@ -499,7 +499,7 @@ public class RegistryProtocol implements Protocol {
         }
 
         for (RegistryProtocolListener listener : listeners) {
-            listener.onRefer(this, invoker, consumerUrl);
+            listener.onRefer(this, invoker, consumerUrl); // 监听器引用->此处会调用到真正的引用服务逻辑
         }
         return invoker;
     }
@@ -523,10 +523,10 @@ public class RegistryProtocol implements Protocol {
         URL urlToRegistry = new URL(CONSUMER_PROTOCOL, parameters.remove(REGISTER_IP_KEY), 0, type.getName(), parameters);
         if (directory.isShouldRegister()) {
             directory.setRegisteredConsumerUrl(urlToRegistry);
-            registry.register(directory.getRegisteredConsumerUrl());
+            registry.register(directory.getRegisteredConsumerUrl()); // 注册服务到注册中心
         }
-        directory.buildRouterChain(urlToRegistry);
-        directory.subscribe(toSubscribeUrl(urlToRegistry));
+        directory.buildRouterChain(urlToRegistry); // 路由过滤链
+        directory.subscribe(toSubscribeUrl(urlToRegistry)); // 订阅服务
 
         return (ClusterInvoker<T>) cluster.join(directory);
     }

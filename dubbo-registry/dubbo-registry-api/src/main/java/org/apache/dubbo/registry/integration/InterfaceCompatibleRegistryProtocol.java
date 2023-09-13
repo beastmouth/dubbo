@@ -59,8 +59,8 @@ public class InterfaceCompatibleRegistryProtocol extends RegistryProtocol {
 
     @Override
     public <T> ClusterInvoker<T> getInvoker(Cluster cluster, Registry registry, Class<T> type, URL url) {
-        DynamicDirectory<T> directory = new RegistryDirectory<>(type, url);
-        return doCreateInvoker(directory, cluster, registry, type);
+        DynamicDirectory<T> directory = new RegistryDirectory<>(type, url); // 此处的directory就是我们的invoker
+        return doCreateInvoker(directory, cluster, registry, type); // invoker完善流程
     }
 
     @Override
