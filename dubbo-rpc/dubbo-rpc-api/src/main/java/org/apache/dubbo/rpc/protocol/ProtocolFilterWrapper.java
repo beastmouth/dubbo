@@ -52,8 +52,8 @@ public class ProtocolFilterWrapper implements Protocol {
         Invoker<T> last = invoker;
         List<Filter> filters = ExtensionLoader.getExtensionLoader(Filter.class).getActivateExtension(invoker.getUrl(), key, group);
 
-        if (!filters.isEmpty()) {
-            for (int i = filters.size() - 1; i >= 0; i--) {
+        if (!filters.isEmpty()) { // 过滤器 ContextFilter(用于传递上下文信息), EchoFilter, ClassLoaderFilter, GenericFilter, ExceptionFilter, MonitorFilter, TimeoutFilter, TraceFilter
+            for (int i = filters.size() - 1; i >= 0; i--) { // 从后往前遍历
                 final Filter filter = filters.get(i);
                 last = new FilterNode<T>(invoker, last, filter);
             }
@@ -69,10 +69,10 @@ public class ProtocolFilterWrapper implements Protocol {
 
     @Override
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
-        if (UrlUtils.isRegistry(invoker.getUrl())) {
-            return protocol.export(invoker);
+        if (UrlUtils.isRegistry(invoker.getUrl())) { // 1.injvm导出服务先进入这个类 1.注册中心导出服务也先进入该类
+            return protocol.export(invoker); // 1.注册中心导出方式进入的方法
         }
-        return protocol.export(buildInvokerChain(invoker, SERVICE_FILTER_KEY, CommonConstants.PROVIDER));
+        return protocol.export(buildInvokerChain(invoker, SERVICE_FILTER_KEY, CommonConstants.PROVIDER)); // 1.injvm导出进入的方法 先构建过滤链, 再导出服务
     }
 
     @Override

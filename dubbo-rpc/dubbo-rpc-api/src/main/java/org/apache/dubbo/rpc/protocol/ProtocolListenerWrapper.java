@@ -58,10 +58,10 @@ public class ProtocolListenerWrapper implements Protocol {
 
     @Override
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
-        if (UrlUtils.isRegistry(invoker.getUrl())) {
-            return protocol.export(invoker);
+        if (UrlUtils.isRegistry(invoker.getUrl())) { // 2.injvm导出服务再进入这个类 2.注册中心导出服务进入的类
+            return protocol.export(invoker); // 2.注册中心导出服务进入的方法（registry）
         }
-        return new ListenerExporterWrapper<T>(protocol.export(invoker),
+        return new ListenerExporterWrapper<T>(protocol.export(invoker), // 2.injvm导出服务进入的方法, 作用包装导出的服务(注册一些协议的监听器等)
                 Collections.unmodifiableList(ExtensionLoader.getExtensionLoader(ExporterListener.class)
                         .getActivateExtension(invoker.getUrl(), EXPORTER_LISTENER_KEY)));
     }

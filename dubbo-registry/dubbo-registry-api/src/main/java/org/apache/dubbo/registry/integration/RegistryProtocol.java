@@ -196,25 +196,27 @@ public class RegistryProtocol implements Protocol {
 
     @Override
     public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcException {
-        URL registryUrl = getRegistryUrl(originInvoker);
+        // demo: zookeeper://tct2.huangbangjing.cn:2181/org.apache.dubbo.registry.RegistryService?application=dubbo-demo-annotation-provider&dubbo=2.0.2&export=dubbo%3A%2F%2F192.168.196.232%3A20880%2Forg.apache.dubbo.demo.DemoService%3Fanyhost%3Dtrue%26application%3Ddubbo-demo-annotation-provider%26bind.ip%3D192.168.196.232%26bind.port%3D20880%26deprecated%3Dfalse%26dubbo%3D2.0.2%26dynamic%3Dtrue%26generic%3Dfalse%26interface%3Dorg.apache.dubbo.demo.DemoService%26methods%3DsayHello%2CsayHelloAsync%26pid%3D13815%26release%3D%26service.name%3DServiceBean%3A%2Forg.apache.dubbo.demo.DemoService%26side%3Dprovider%26timestamp%3D1694585093181%26weight%3D1&id=registryConfig&pid=13815&timestamp=1694585089576
+        URL registryUrl = getRegistryUrl(originInvoker); // 获取注册中心的url
+        // demo: dubbo://192.168.196.232:20880/org.apache.dubbo.demo.DemoService?anyhost=true&application=dubbo-demo-annotation-provider&bind.ip=192.168.196.232&bind.port=20880&deprecated=false&dubbo=2.0.2&dynamic=true&generic=false&interface=org.apache.dubbo.demo.DemoService&methods=sayHello,sayHelloAsync&pid=13815&release=&service.name=ServiceBean:/org.apache.dubbo.demo.DemoService&side=provider&timestamp=1694585093181&weight=1
         // url to export locally
-        URL providerUrl = getProviderUrl(originInvoker);
+        URL providerUrl = getProviderUrl(originInvoker); // 获取服务提供者的url
 
         // Subscribe the override data
         // FIXME When the provider subscribes, it will affect the scene : a certain JVM exposes the service and call
         //  the same service. Because the subscribed is cached key with the name of the service, it causes the
         //  subscription information to cover.
         final URL overrideSubscribeUrl = getSubscribedOverrideUrl(providerUrl);
-        final OverrideListener overrideSubscribeListener = new OverrideListener(overrideSubscribeUrl, originInvoker);
+        final OverrideListener overrideSubscribeListener = new OverrideListener(overrideSubscribeUrl, originInvoker); // 是 Dubbo 中的一个扩展点，用于监听 Dubbo 服务提供者端（Provider）的动态配置变化。其主要作用是在服务提供者端监听和处理动态覆盖配置信息(即灵活更新服务提供者)
         overrideListeners.put(overrideSubscribeUrl, overrideSubscribeListener);
 
         providerUrl = overrideUrlWithConfig(providerUrl, overrideSubscribeListener);
         // export invoker
-        final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker, providerUrl);
+        final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker, providerUrl); // 本地导出
 
         // url to registry
-        final Registry registry = getRegistry(originInvoker);
-        final URL registeredProviderUrl = getUrlToRegistry(providerUrl, registryUrl);
+        final Registry registry = getRegistry(originInvoker); // 获取注册中心
+        final URL registeredProviderUrl = getUrlToRegistry(providerUrl, registryUrl); // 生成注册服务提供者的url
 
         // decide if we need to delay publish
         boolean register = providerUrl.getParameter(REGISTER_KEY, true);
@@ -223,7 +225,7 @@ public class RegistryProtocol implements Protocol {
         }
 
         // register stated url on provider model
-        registerStatedUrl(registryUrl, registeredProviderUrl, register);
+        registerStatedUrl(registryUrl, registeredProviderUrl, register); // 服务注册
 
 
         exporter.setRegisterUrl(registeredProviderUrl);
@@ -232,7 +234,7 @@ public class RegistryProtocol implements Protocol {
         // Deprecated! Subscribe to override rules in 2.6.x or before.
         registry.subscribe(overrideSubscribeUrl, overrideSubscribeListener);
 
-        notifyExport(exporter);
+        notifyExport(exporter); // 通知服务导出
         //Ensure that a new exporter instance is returned every time export
         return new DestroyableExporter<>(exporter);
     }
