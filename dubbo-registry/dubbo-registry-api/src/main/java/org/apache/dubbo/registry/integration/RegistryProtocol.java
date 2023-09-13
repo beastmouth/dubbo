@@ -212,7 +212,7 @@ public class RegistryProtocol implements Protocol {
 
         providerUrl = overrideUrlWithConfig(providerUrl, overrideSubscribeListener);
         // export invoker
-        final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker, providerUrl); // 本地导出
+        final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker, providerUrl); // 本地导出=>重走刚刚导出的逻辑,同时最终会调用到DubboProtocol
 
         // url to registry
         final Registry registry = getRegistry(originInvoker); // 获取注册中心
