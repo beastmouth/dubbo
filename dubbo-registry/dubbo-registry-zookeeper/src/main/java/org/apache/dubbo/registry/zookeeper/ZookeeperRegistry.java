@@ -174,12 +174,12 @@ public class ZookeeperRegistry extends FailbackRegistry {
                             ((RegistryChildListenerImpl) zkListener).setLatch(latch);
                         }
                         zkClient.create(path, false);
-                        List<String> children = zkClient.addChildListener(path, zkListener);
+                        List<String> children = zkClient.addChildListener(path, zkListener); // zk监听器, 监听服务提供者的变化
                         if (children != null) {
                             urls.addAll(toUrlsWithEmpty(url, path, children));
                         }
                     }
-                    notify(url, listener, urls);
+                    notify(url, listener, urls); // 通知, 此处会创建Dubbo远程调用的invoker
                 } finally {
                     // tells the listener to run only after the sync notification of main thread finishes.
                     latch.countDown();

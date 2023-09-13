@@ -403,7 +403,7 @@ public class DubboProtocol extends AbstractProtocol {
         optimizeSerialization(url);
 
         // create rpc invoker.
-        DubboInvoker<T> invoker = new DubboInvoker<T>(serviceType, url, getClients(url), invokers);
+        DubboInvoker<T> invoker = new DubboInvoker<T>(serviceType, url, getClients(url) /*创建远程调用的ExchangeClient，默认情况下此时并没有建立链接，而是要等待远程调用时才建立*/, invokers); // dubbo引用
         invokers.add(invoker);
 
         return invoker;

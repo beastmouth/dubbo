@@ -62,7 +62,7 @@ public class MigrationRuleHandler<T> {
                     break;
                 case FORCE_INTERFACE:
                 default:
-                    migrationInvoker.fallbackToInterfaceInvoker();
+                    migrationInvoker.fallbackToInterfaceInvoker(); // 接口级别invoker
             }
         }
     }

@@ -94,7 +94,7 @@ public class RegistryDirectory<T> extends DynamicDirectory<T> {
         setConsumerUrl(url);
         CONSUMER_CONFIGURATION_LISTENER.addNotifyListener(this);
         referenceConfigurationListener = new ReferenceConfigurationListener(this, url);
-        registry.subscribe(url, this);
+        registry.subscribe(url, this); // 订阅
     }
 
     @Override
@@ -149,7 +149,7 @@ public class RegistryDirectory<T> extends DynamicDirectory<T> {
     private synchronized void refreshOverrideAndInvoker(List<URL> urls) {
         // mock zookeeper://xxx?mock=return null
         overrideDirectoryUrl();
-        refreshInvoker(urls);
+        refreshInvoker(urls); // 注册中心/配置中心刷新覆盖invoker
     }
 
     /**
@@ -189,7 +189,7 @@ public class RegistryDirectory<T> extends DynamicDirectory<T> {
                 return;
             }
             this.forbidden = false; // Allow to access
-            Map<URL, Invoker<T>> newUrlInvokerMap = toInvokers(invokerUrls);// Translate url list to Invoker map
+            Map<URL, Invoker<T>> newUrlInvokerMap = toInvokers(invokerUrls);// Translate url list to Invoker map // 构建出dubbo远程调用的invoker
 
             /**
              * If the calculation is wrong, it is not processed.

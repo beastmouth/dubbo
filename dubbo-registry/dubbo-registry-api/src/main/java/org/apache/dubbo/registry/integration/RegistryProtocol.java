@@ -482,7 +482,7 @@ public class RegistryProtocol implements Protocol {
     protected <T> Invoker<T> doRefer(Cluster cluster, Registry registry, Class<T> type, URL url, Map<String, String> parameters) {
         URL consumerUrl = new URL(CONSUMER_PROTOCOL, parameters.remove(REGISTER_IP_KEY), 0, type.getName(), parameters);
         ClusterInvoker<T> migrationInvoker = getMigrationInvoker(this, cluster, registry, type, url, consumerUrl);
-        return interceptInvoker(migrationInvoker, url, consumerUrl);
+        return interceptInvoker(migrationInvoker, url, consumerUrl); // refer流程关键方法
     }
 
     protected <T> ClusterInvoker<T> getMigrationInvoker(RegistryProtocol registryProtocol, Cluster cluster, Registry registry,
@@ -492,7 +492,7 @@ public class RegistryProtocol implements Protocol {
 
     protected <T> Invoker<T> interceptInvoker(ClusterInvoker<T> invoker, URL url, URL consumerUrl) {
         List<RegistryProtocolListener> listeners = findRegistryProtocolListeners(url);
-        if (CollectionUtils.isEmpty(listeners)) {
+        if (CollectionUtils.isEmpty(listeners)) { // 默认: MigrationRuleListener
             return invoker;
         }
 
@@ -514,17 +514,17 @@ public class RegistryProtocol implements Protocol {
     }
 
     protected <T> ClusterInvoker<T> doCreateInvoker(DynamicDirectory<T> directory, Cluster cluster, Registry registry, Class<T> type) {
-        directory.setRegistry(registry);
-        directory.setProtocol(protocol);
+        directory.setRegistry(registry); // 设置注册中心
+        directory.setProtocol(protocol); // 设置协议
         // all attributes of REFER_KEY
         Map<String, String> parameters = new HashMap<String, String>(directory.getConsumerUrl().getParameters());
         URL urlToRegistry = new URL(CONSUMER_PROTOCOL, parameters.remove(REGISTER_IP_KEY), 0, type.getName(), parameters);
         if (directory.isShouldRegister()) {
             directory.setRegisteredConsumerUrl(urlToRegistry);
-            registry.register(directory.getRegisteredConsumerUrl());
+            registry.register(directory.getRegisteredConsumerUrl()); // 注册服务
         }
-        directory.buildRouterChain(urlToRegistry);
-        directory.subscribe(toSubscribeUrl(urlToRegistry));
+        directory.buildRouterChain(urlToRegistry); // 构建路由过滤链
+        directory.subscribe(toSubscribeUrl(urlToRegistry)); // 订阅服务
 
         return (ClusterInvoker<T>) cluster.join(directory);
     }
