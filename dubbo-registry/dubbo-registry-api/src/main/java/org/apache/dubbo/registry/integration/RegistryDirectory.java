@@ -111,15 +111,19 @@ public class RegistryDirectory<T> extends DynamicDirectory<T> {
                 .filter(Objects::nonNull)
                 .filter(this::isValidCategory)
                 .filter(this::isNotCompatibleFor26x)
+                // 分组 分别存放服务提供者url，路由url，配置器url
                 .collect(Collectors.groupingBy(this::judgeCategory));
 
+        // 配置器url
         List<URL> configuratorURLs = categoryUrls.getOrDefault(CONFIGURATORS_CATEGORY, Collections.emptyList());
         this.configurators = Configurator.toConfigurators(configuratorURLs).orElse(this.configurators);
 
+        // 路由url
         List<URL> routerURLs = categoryUrls.getOrDefault(ROUTERS_CATEGORY, Collections.emptyList());
+        // 讲url转成router
         toRouters(routerURLs).ifPresent(this::addRouters);
 
-        // providers
+        // providers 服务提供者url
         List<URL> providerURLs = categoryUrls.getOrDefault(PROVIDERS_CATEGORY, Collections.emptyList());
         /**
          * 3.x added for extend URL address
@@ -131,6 +135,7 @@ public class RegistryDirectory<T> extends DynamicDirectory<T> {
                 providerURLs = addressListener.notify(providerURLs, getConsumerUrl(), this);
             }
         }
+        // 刷新invoker列表
         refreshOverrideAndInvoker(providerURLs);
     }
 
@@ -167,12 +172,14 @@ public class RegistryDirectory<T> extends DynamicDirectory<T> {
     private void refreshInvoker(List<URL> invokerUrls) {
         Assert.notNull(invokerUrls, "invokerUrls should not be null");
 
+        // invokerUrls 仅有一个元素且url的协议头为empty，表示禁用所有服务
         if (invokerUrls.size() == 1
                 && invokerUrls.get(0) != null
                 && EMPTY_PROTOCOL.equals(invokerUrls.get(0).getProtocol())) {
             this.forbidden = true; // Forbid to access
             this.invokers = Collections.emptyList();
             routerChain.setInvokers(this.invokers);
+            // 销毁所有invoker
             destroyAllInvokers(); // Close all invokers
         } else {
             Map<URL, Invoker<T>> oldUrlInvokerMap = this.urlInvokerMap; // local reference
@@ -180,15 +187,18 @@ public class RegistryDirectory<T> extends DynamicDirectory<T> {
                 invokerUrls = new ArrayList<>();
             }
             if (invokerUrls.isEmpty() && this.cachedInvokerUrls != null) {
+                // 添加缓存的url到invokerUrls中
                 invokerUrls.addAll(this.cachedInvokerUrls);
             } else {
                 this.cachedInvokerUrls = new HashSet<>();
+                // 缓存invokerUrls
                 this.cachedInvokerUrls.addAll(invokerUrls);//Cached invoker urls, convenient for comparison
             }
             if (invokerUrls.isEmpty()) {
                 return;
             }
             this.forbidden = false; // Allow to access
+            // 将url转成invoker
             Map<URL, Invoker<T>> newUrlInvokerMap = toInvokers(invokerUrls);// Translate url list to Invoker map
 
             /**
@@ -209,10 +219,12 @@ public class RegistryDirectory<T> extends DynamicDirectory<T> {
             // pre-route and build cache, notice that route cache should build on original Invoker list.
             // toMergeMethodInvokerMap() will wrap some invokers having different groups, those wrapped invokers not should be routed.
             routerChain.setInvokers(newInvokers);
+            // 多组服务的合并
             this.invokers = multiGroup ? toMergeInvokerList(newInvokers) : newInvokers;
             this.urlInvokerMap = newUrlInvokerMap;
 
             // Close the unused Invoker
+            // 销毁无用的invoker =》 防止消费者调用到已经下线的服务
             destroyUnusedInvokers(oldUrlInvokerMap, newUrlInvokerMap);
 
         }
@@ -223,7 +235,7 @@ public class RegistryDirectory<T> extends DynamicDirectory<T> {
 
     private List<Invoker<T>> toMergeInvokerList(List<Invoker<T>> invokers) {
         List<Invoker<T>> mergedInvokers = new ArrayList<>();
-        // group by invoker#url#group
+        // group by invoker#url#group 根据url中的group分组
         Map<String, List<Invoker<T>>> groupMap =
                 invokers.stream().collect(Collectors.groupingBy(x -> x.getUrl().getParameter(GROUP_KEY, "")));
 
@@ -283,6 +295,7 @@ public class RegistryDirectory<T> extends DynamicDirectory<T> {
             return newUrlInvokerMap;
         }
         Set<URL> keys = new HashSet<>();
+        // 获取服务消费端配置的协议
         String queryProtocols = this.queryMap.get(PROTOCOL_KEY);
         for (URL providerUrl : urls) {
             // If protocol is configured at the reference side, only the matching protocol is selected
@@ -291,17 +304,21 @@ public class RegistryDirectory<T> extends DynamicDirectory<T> {
                 String[] acceptProtocols = queryProtocols.split(",");
                 for (String acceptProtocol : acceptProtocols) {
                     if (providerUrl.getProtocol().equals(acceptProtocol)) {
+                        // 服务提供者的协议能够被消费者所支持
                         accept = true;
                         break;
                     }
                 }
                 if (!accept) {
+                    // 若服务提供者协议头不被消费者所支持，则忽略当前 providerUrl
                     continue;
                 }
             }
+            // 忽略empty协议
             if (EMPTY_PROTOCOL.equals(providerUrl.getProtocol())) {
                 continue;
             }
+            // 通过 SPI 检测服务端协议是否被消费端支持，不支持则抛出异常
             if (!ExtensionLoader.getExtensionLoader(Protocol.class).hasExtension(providerUrl.getProtocol())) {
                 logger.error(new IllegalStateException("Unsupported protocol " + providerUrl.getProtocol() +
                         " in notified url: " + providerUrl + " from registry " + getUrl().getAddress() +
@@ -309,6 +326,7 @@ public class RegistryDirectory<T> extends DynamicDirectory<T> {
                         ExtensionLoader.getExtensionLoader(Protocol.class).getSupportedExtensions()));
                 continue;
             }
+            // 合并 url
             URL url = mergeUrl(providerUrl);
 
             if (keys.contains(url)) { // Repeated url
@@ -317,8 +335,10 @@ public class RegistryDirectory<T> extends DynamicDirectory<T> {
             keys.add(url);
             // Cache key is url that does not merge with consumer side parameters, regardless of how the consumer combines parameters, if the server url changes, then refer again
             Map<URL, Invoker<T>> localUrlInvokerMap = this.urlInvokerMap; // local reference
+            // 获取本地缓存中的invoker
             Invoker<T> invoker = localUrlInvokerMap == null ? null : localUrlInvokerMap.get(url);
             if (invoker == null) { // Not in the cache, refer again
+                // 缓存未命中
                 try {
                     boolean enabled = true;
                     if (url.hasParameter(DISABLED_KEY)) {
@@ -327,6 +347,7 @@ public class RegistryDirectory<T> extends DynamicDirectory<T> {
                         enabled = url.getParameter(ENABLED_KEY, true);
                     }
                     if (enabled) {
+                        // 调用refer引用服务
                         invoker = new InvokerDelegate<>(protocol.refer(serviceType, url), url, providerUrl);
                     }
                 } catch (Throwable t) {
