@@ -33,6 +33,7 @@ import org.apache.dubbo.rpc.RpcException;
 @SPI(Cluster.DEFAULT)
 public interface Cluster {
 
+    // 默认failover
     String DEFAULT = "failover";
 
     /**
