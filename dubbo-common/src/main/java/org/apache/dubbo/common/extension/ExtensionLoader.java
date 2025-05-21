@@ -95,17 +95,25 @@ public class ExtensionLoader<T> {
 
     private final ExtensionFactory objectFactory;
 
+    // 扩展点实现 class -> 扩展点实现 name
     private final ConcurrentMap<Class<?>, String> cachedNames = new ConcurrentHashMap<>();
 
+    // 扩展点实现 name -> 扩展点实现 class
     private final Holder<Map<String, Class<?>>> cachedClasses = new Holder<>();
 
+    // 扩展点实现 name -> 扩展点 Activate 注解
     private final Map<String, Object> cachedActivates = new ConcurrentHashMap<>();
+    // 扩展点实现 name -> 扩展点实现 instance
     private final ConcurrentMap<String, Holder<Object>> cachedInstances = new ConcurrentHashMap<>();
+    // adaptive : adaptive 实例
     private final Holder<Object> cachedAdaptiveInstance = new Holder<>();
+    // adaptive : adaptiveClass
     private volatile Class<?> cachedAdaptiveClass = null;
+    // 默认扩展点实现 name
     private String cachedDefaultName;
     private volatile Throwable createAdaptiveInstanceError;
 
+    // wrapper: 包装类集合
     private Set<Class<?>> cachedWrapperClasses;
 
     private Map<String, IllegalStateException> exceptions = new ConcurrentHashMap<>();
@@ -121,7 +129,9 @@ public class ExtensionLoader<T> {
     }
 
     private ExtensionLoader(Class<?> type) {
+        // 当前扩展点对应spi接口class
         this.type = type;
+        // 扩展点工厂AdaptiveExtensionFactory，主要用于setter注入
         objectFactory = (type == ExtensionFactory.class ? null : ExtensionLoader.getExtensionLoader(ExtensionFactory.class).getAdaptiveExtension());
     }
 
@@ -142,6 +152,8 @@ public class ExtensionLoader<T> {
                     ") is not an extension, because it is NOT annotated with @" + SPI.class.getSimpleName() + "!");
         }
 
+        // ExtensionLoader在一个扩展点接口Class下只有一个实例，而每个扩展点实现实例在全局只有一个。
+        // 单例模式
         ExtensionLoader<T> loader = (ExtensionLoader<T>) EXTENSION_LOADERS.get(type);
         if (loader == null) {
             EXTENSION_LOADERS.putIfAbsent(type, new ExtensionLoader<T>(type));
@@ -717,6 +729,7 @@ public class ExtensionLoader<T> {
             synchronized (cachedClasses) {
                 classes = cachedClasses.get();
                 if (classes == null) {
+                    // 加载所有扩展点实现类
                     classes = loadExtensionClasses();
                     cachedClasses.set(classes);
                 }
@@ -729,12 +742,23 @@ public class ExtensionLoader<T> {
      * synchronized in getExtensionClasses
      * */
     private Map<String, Class<?>> loadExtensionClasses() {
+        // 加载默认扩展点名称
+        // 加载SPI注解中的value属性，作为默认扩展点名称，默认扩展点只能存在一个
         cacheDefaultExtensionName();
 
         Map<String, Class<?>> extensionClasses = new HashMap<>();
 
+        // 循环3个目录，加载 class 到 extensionClasses
+        // META-INF/dubbo/internal：dubbo框架自己用的
+        // META-INF/dubbo/：用户扩展用的
+        // META-INF/services/：官方也没建议这样使用
         for (LoadingStrategy strategy : strategies) {
+            // ExtensionLoader#loadDirectory：
+            // 1）类加载器：优先线程类加载器，其次ExtensionLoader自己的类加载器；
+            // 2）扫描扩展点配置文件；
+            // 3）加载扩展类；
             loadDirectory(extensionClasses, strategy.directory(), type.getName(), strategy.preferExtensionClassLoader(), strategy.excludedPackages());
+            // 老包适配
             loadDirectory(extensionClasses, strategy.directory(), type.getName().replace("org.apache", "com.alibaba"), strategy.preferExtensionClassLoader(), strategy.excludedPackages());
         }
 
@@ -772,6 +796,7 @@ public class ExtensionLoader<T> {
         String fileName = dir + type;
         try {
             Enumeration<java.net.URL> urls = null;
+            // 决定类加载器 当前线程类加载器 or ExtensionLoader.class 类加载器
             ClassLoader classLoader = findClassLoader();
             
             // try to load from ExtensionLoader's ClassLoader first
@@ -783,6 +808,8 @@ public class ExtensionLoader<T> {
             }
             
             if(urls == null || !urls.hasMoreElements()) {
+                // 扫描 classpath 下所有扩展点配置文件
+                // 放置扩展点配置文件 META-INF/dubbo/ 接口全限定名，内容为：配置名=扩展实现类全限定名，多个实现类用换行符分隔
                 if (classLoader != null) {
                     urls = classLoader.getResources(fileName);
                 } else {
@@ -790,6 +817,7 @@ public class ExtensionLoader<T> {
                 }
             }
 
+            // 加载扩展点配置文件中的 class
             if (urls != null) {
                 while (urls.hasMoreElements()) {
                     java.net.URL resourceURL = urls.nextElement();
@@ -848,6 +876,7 @@ public class ExtensionLoader<T> {
         return false;
     }
 
+    // 最终将每个扩展实现类Class按照不同的方式，缓存到ExtensionLoader实例中
     private void loadClass(Map<String, Class<?>> extensionClasses, java.net.URL resourceURL, Class<?> clazz, String name) throws NoSuchMethodException {
         if (!type.isAssignableFrom(clazz)) {
             throw new IllegalStateException("Error occurred when loading extension class (interface: " +
@@ -855,10 +884,13 @@ public class ExtensionLoader<T> {
                     + clazz.getName() + " is not subtype of interface.");
         }
         if (clazz.isAnnotationPresent(Adaptive.class)) {
+            // Adaptive 类 cachedAdativeClass = clazz
             cacheAdaptiveClass(clazz);
         } else if (isWrapperClass(clazz)) {
+            // 包装类 cachedWrapperClasses.add(clazz)
             cacheWrapperClass(clazz);
         } else {
+            // 普通扩展点
             clazz.getConstructor();
             if (StringUtils.isEmpty(name)) {
                 name = findAnnotationName(clazz);
@@ -869,9 +901,12 @@ public class ExtensionLoader<T> {
 
             String[] names = NAME_SEPARATOR.split(name);
             if (ArrayUtils.isNotEmpty(names)) {
+                // active 扩展点，cachedActivates.put(name[0], Activate注解);
                 cacheActivateClass(clazz, names[0]);
                 for (String n : names) {
+                    // cachedNames.put(clazz, name);
                     cacheName(clazz, n);
+                    // cachedClasses.put(name, clazz);
                     saveInExtensionClass(extensionClasses, clazz, n);
                 }
             }
