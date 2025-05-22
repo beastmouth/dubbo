@@ -88,6 +88,7 @@ public class AdaptiveClassCodeGenerator {
      */
     public String generate() {
         // no need to generate adaptive class since there's no adaptive method found.
+        // 扩展点必须有 Adaptive 注解方法，否则异常
         if (!hasAdaptiveMethod()) {
             throw new IllegalStateException("No adaptive method exist on extension " + type.getName() + ", refuse to create the adaptive class!");
         }
@@ -99,6 +100,7 @@ public class AdaptiveClassCodeGenerator {
 
         Method[] methods = type.getMethods();
         for (Method method : methods) {
+            // 循环为每个方法生成实现代码
             code.append(generateMethod(method));
         }
         code.append("}");
@@ -201,32 +203,41 @@ public class AdaptiveClassCodeGenerator {
         Adaptive adaptiveAnnotation = method.getAnnotation(Adaptive.class);
         StringBuilder code = new StringBuilder(512);
         if (adaptiveAnnotation == null) {
+            // 非 Adaptive 方法，抛出异常
             return generateUnsupported(method);
         } else {
+            // 获取 URL 属性，必须能获取到
             int urlTypeIndex = getUrlTypeIndex(method);
 
             // found parameter in URL type
             if (urlTypeIndex != -1) {
                 // Null Point check
+                // 从方法参数列表里面直接取
                 code.append(generateUrlNullCheck(urlTypeIndex));
             } else {
                 // did not find parameter in URL type
+                // 如果找不到，抛出异常
                 code.append(generateUrlAssignmentIndirectly(method));
             }
 
+            // Adaptive 注解的 value，如果没有指定，则用扩展点类名去驼峰加点代替
             String[] value = getMethodAdaptiveValue(adaptiveAnnotation);
 
+            // 参数列表是否有 Invocation.class，特殊处理
             boolean hasInvocation = hasInvocationArgument(method);
 
             code.append(generateInvocationArgumentNullCheck(method));
 
+            // 从 Url 里获取扩展点，key 是 Adaptive 注解的 value
             code.append(generateExtNameAssignment(value, hasInvocation));
             // check extName == null?
             code.append(generateExtNameNullCheck(value));
 
+            // 获取扩展点：ExtensionLoader.getExtension（扩展点名）
             code.append(generateExtensionAssignment());
 
             // return statement
+            // 委派给扩展点执行目标方法调用
             code.append(generateReturnAndInvocation(method));
         }
 

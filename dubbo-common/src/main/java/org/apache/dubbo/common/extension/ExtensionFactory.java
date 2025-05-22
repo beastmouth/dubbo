@@ -18,6 +18,10 @@ package org.apache.dubbo.common.extension;
 
 /**
  * ExtensionFactory
+ * 这里走硬编码实现的AdaptiveExtensionFactory，循环每个ExtensionFactory扩展点，通过type和name找扩展点实现。
+ * ExtensionFactory有两个实现
+ * 原生的SpiExtensionFactory，没有利用setter的属性name，直接获取type对应的自适应扩展点。
+ * Spring相关的SpringExtensionFactory支持从多个ioc容器中，通过getBean(setter属性名,扩展点)获取bean。
  */
 @SPI
 public interface ExtensionFactory {

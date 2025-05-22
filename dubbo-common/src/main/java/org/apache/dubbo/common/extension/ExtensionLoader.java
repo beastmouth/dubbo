@@ -248,11 +248,17 @@ public class ExtensionLoader<T> {
      * @param group  group
      * @return extension list which are activated
      * @see org.apache.dubbo.common.extension.Activate
+     * 获取激活扩展点的入参包含三部分：
+     * 1）查询URL；2）查询扩展点名称集合；3）查询分组
      */
     public List<T> getActivateExtension(URL url, String[] values, String group) {
         List<T> activateExtensions = new ArrayList<>();
+        // 扩展点名称
         List<String> names = values == null ? new ArrayList<>(0) : Arrays.asList(values);
+        // 从 Activate 注解过滤扩展点
+        // 不包含 -default
         if (!names.contains(REMOVE_VALUE_PREFIX + DEFAULT_KEY)) {
+            // 如果没有执行类加载，先加载
             getExtensionClasses();
             for (Map.Entry<String, Object> entry : cachedActivates.entrySet()) {
                 String name = entry.getKey();
@@ -264,14 +270,23 @@ public class ExtensionLoader<T> {
                     activateGroup = ((Activate) activate).group();
                     activateValue = ((Activate) activate).value();
                 } else if (activate instanceof com.alibaba.dubbo.common.extension.Activate) {
+                    // 老包适配，所以 cachedActivates 的 Value 是 object
                     activateGroup = ((com.alibaba.dubbo.common.extension.Activate) activate).group();
                     activateValue = ((com.alibaba.dubbo.common.extension.Activate) activate).value();
                 } else {
                     continue;
                 }
+                // group 匹配
+                // 如果查询条件不包含group，则匹配，如果查询条件包含group，注解中必须有group与其匹配。
                 if (isMatchGroup(group, activateGroup)
                         && !names.contains(name)
+                        // -name
                         && !names.contains(REMOVE_VALUE_PREFIX + name)
+                        // url 匹配
+                        // 1）Activate没有value约束，匹配
+                        // 2）url匹配成功条件：如果注解value配置为k:v模式，要求url参数kv完全匹配；如果注解value配置为k模式，只需要url包含kv参数即可。其中k还支持后缀匹配。
+                        // 比如@Activate(value = {"level"})只需要url中有level=xxx即可，
+                        // 而@Activate(value = {"level:2"})需要url中level=2。
                         && isActive(activateValue, url)) {
                     activateExtensions.add(getExtension(name));
                 }
@@ -279,6 +294,7 @@ public class ExtensionLoader<T> {
             activateExtensions.sort(ActivateComparator.COMPARATOR);
         }
         List<T> loadedExtensions = new ArrayList<>();
+        // 从扩展名获取扩展点
         for (int i = 0; i < names.size(); i++) {
             String name = names.get(i);
             if (!name.startsWith(REMOVE_VALUE_PREFIX)
@@ -399,6 +415,12 @@ public class ExtensionLoader<T> {
     /**
      * Find the extension with the given name. If the specified name is not found, then {@link IllegalStateException}
      * will be thrown.
+     * 如果一个扩展点存在包装类，客户端通过getExtension永远无法获取到原始扩展点实现
+     * 包装类是硬编码实现的：
+     * 1）本质上包装的顺序是无序的，取决于扩展点配置文件的扫描顺序。（SpringAOP可以设置顺序）
+     * 2）包装类即使只关注扩展点的一个方法，也必须要实现扩展点的所有方法，扩展点新增方法如果没有默认实现，需要修改所有包装类。（SpringAOP如果用户只关心其中一个方法，也可以实现，因为是动态代理）
+     * 3）性能较好。（无反射）
+     * 获取单个扩展点实现
      */
     @SuppressWarnings("unchecked")
     public T getExtension(String name) {
@@ -414,6 +436,7 @@ public class ExtensionLoader<T> {
             synchronized (holder) {
                 instance = holder.get();
                 if (instance == null) {
+                    // 实例化扩展点
                     instance = createExtension(name);
                     holder.set(instance);
                 }
@@ -456,6 +479,7 @@ public class ExtensionLoader<T> {
         return Collections.unmodifiableSet(new TreeSet<>(clazzes.keySet()));
     }
 
+    // 获取所有扩展点实现
     public Set<T> getSupportedExtensionInstances() {
         List<T> instances = new LinkedList<>();
         Set<String> supportedExtensions = getSupportedExtensions();
@@ -561,6 +585,7 @@ public class ExtensionLoader<T> {
 
     @SuppressWarnings("unchecked")
     public T getAdaptiveExtension() {
+        // 自适应扩展点
         Object instance = cachedAdaptiveInstance.get();
         if (instance == null) {
             if (createAdaptiveInstanceError != null) {
@@ -613,23 +638,31 @@ public class ExtensionLoader<T> {
 
     @SuppressWarnings("unchecked")
     private T createExtension(String name) {
+        // beanName -> class 首次会加载所有扩展点 class
         Class<?> clazz = getExtensionClasses().get(name);
         if (clazz == null) {
             throw findException(name);
         }
         try {
+            // 创建扩展点 instance
             T instance = (T) EXTENSION_INSTANCES.get(clazz);
             if (instance == null) {
                 EXTENSION_INSTANCES.putIfAbsent(clazz, clazz.newInstance());
                 instance = (T) EXTENSION_INSTANCES.get(clazz);
             }
+            // setter 注入
             injectExtension(instance);
+            // 如果存在包装类，层层包装 instance，返回最终包装 instance
+            // 包装扩展点不能通过getExtension显示获取。类似于 Spring 的 AOP，对用户来说是透明的
             Set<Class<?>> wrapperClasses = cachedWrapperClasses;
             if (CollectionUtils.isNotEmpty(wrapperClasses)) {
                 for (Class<?> wrapperClass : wrapperClasses) {
+                    // 包装老 instance，返回包装 instance
+                    // 无序
                     instance = injectExtension((T) wrapperClass.getConstructor(type).newInstance(instance));
                 }
             }
+            // 如果 instance 是 LifeCycle，执行初始化
             initExtension(instance);
             return instance;
         } catch (Throwable t) {
@@ -656,16 +689,22 @@ public class ExtensionLoader<T> {
                 /**
                  * Check {@link DisableInject} to see if we need auto injection for this property
                  */
+                // 禁止注入
                 if (method.getAnnotation(DisableInject.class) != null) {
                     continue;
                 }
+                // 获取 setter 方法的第一个参数的 class 作为扩展点 class
                 Class<?> pt = method.getParameterTypes()[0];
                 if (ReflectUtils.isPrimitives(pt)) {
                     continue;
                 }
 
                 try {
+                    // 获取 setter 属性作为扩展点名
+                    //  for instance: setVersion, return "version"
                     String property = getSetterProperty(method);
+                    // ExtensionFactory#getExtension
+                    // 根据扩展点 Class+扩展点名找到扩展点实现
                     Object object = objectFactory.getExtension(pt, property);
                     if (object != null) {
                         method.invoke(instance, object);
@@ -885,9 +924,11 @@ public class ExtensionLoader<T> {
         }
         if (clazz.isAnnotationPresent(Adaptive.class)) {
             // Adaptive 类 cachedAdativeClass = clazz
+            // 在类加载阶段，被Adaptive注解修饰的扩展点Class会被缓存到cachedAdaptiveClass
             cacheAdaptiveClass(clazz);
         } else if (isWrapperClass(clazz)) {
             // 包装类 cachedWrapperClasses.add(clazz)
+            // 不会放入普通扩展点的缓存map，所以无法通过getExtension显示获取
             cacheWrapperClass(clazz);
         } else {
             // 普通扩展点
@@ -902,6 +943,7 @@ public class ExtensionLoader<T> {
             String[] names = NAME_SEPARATOR.split(name);
             if (ArrayUtils.isNotEmpty(names)) {
                 // active 扩展点，cachedActivates.put(name[0], Activate注解);
+                // 激活扩展点只是筛选普通扩展点的方式，属于普通扩展点的子集。
                 cacheActivateClass(clazz, names[0]);
                 for (String n : names) {
                     // cachedNames.put(clazz, name);
@@ -1010,6 +1052,7 @@ public class ExtensionLoader<T> {
     @SuppressWarnings("unchecked")
     private T createAdaptiveExtension() {
         try {
+            // 无参构造反射创建Adaptive扩展点，并执行setter注入
             return injectExtension((T) getAdaptiveExtensionClass().newInstance());
         } catch (Exception e) {
             throw new IllegalStateException("Can't create adaptive extension " + type + ", cause: " + e.getMessage(), e);
@@ -1017,15 +1060,22 @@ public class ExtensionLoader<T> {
     }
 
     private Class<?> getAdaptiveExtensionClass() {
+        // dubbo 优先选择用户实现的 Adaptive 扩展点实现。否则会动态生成 Adaptive 扩展点
         getExtensionClasses();
+        // 扫到的硬编码 @Adaptive 类
         if (cachedAdaptiveClass != null) {
             return cachedAdaptiveClass;
         }
+
+        // 动态生成：Adaptive注解Method
+        // 字节码生成 Adaptive 类
         return cachedAdaptiveClass = createAdaptiveExtensionClass();
     }
 
     private Class<?> createAdaptiveExtensionClass() {
+        // 传入扩展点 class 和默认扩展名，生成 java 代码字符串
         String code = new AdaptiveClassCodeGenerator(type, cachedDefaultName).generate();
+        // 默认走 javassist 生成字节码
         ClassLoader classLoader = findClassLoader();
         org.apache.dubbo.common.compiler.Compiler compiler = ExtensionLoader.getExtensionLoader(org.apache.dubbo.common.compiler.Compiler.class).getAdaptiveExtension();
         return compiler.compile(code, classLoader);

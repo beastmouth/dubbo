@@ -30,6 +30,7 @@ import java.util.List;
 @Adaptive
 public class AdaptiveExtensionFactory implements ExtensionFactory {
 
+    // 所有 ExtensionFactory 实现
     private final List<ExtensionFactory> factories;
 
     public AdaptiveExtensionFactory() {
@@ -44,6 +45,10 @@ public class AdaptiveExtensionFactory implements ExtensionFactory {
     @Override
     public <T> T getExtension(Class<T> type, String name) {
         for (ExtensionFactory factory : factories) {
+            // 找到一个 ExtensionFactory 能够获取到扩展点后返回
+            // ExtensionFactory有两个实现
+            // 原生的SpiExtensionFactory，没有利用setter的属性name，直接获取type对应的自适应扩展点。
+            // Spring相关的SpringExtensionFactory支持从多个ioc容器中，通过getBean(setter属性名,扩展点)获取bean。
             T extension = factory.getExtension(type, name);
             if (extension != null) {
                 return extension;
