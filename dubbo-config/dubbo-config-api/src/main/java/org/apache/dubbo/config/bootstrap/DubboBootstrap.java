@@ -181,7 +181,14 @@ public class DubboBootstrap extends GenericEventListener {
     }
 
     private DubboBootstrap() {
+        // ConfigManager和Environment都是SPI接口FrameworkExt的实现类，
+        // 都是框架级别的单例对象，不支持扩展，统一通过ApplicationModel暴露给外部使用。
+
+        // ConfigManager统一管理AbstractConfig
         configManager = ApplicationModel.getConfigManager();
+        // 可以理解为一堆kv配置，包括文件系统的dubbo.properties、环境变量、外部配置中心配置等等。
+        // Environment其实不会暴露给业务使用，最终都是注入AbstractConfig供业务使用
+        // 比如ServiceConfig、ApplicationConfig、ProtocolConfig等等，都属于AbstractConfig子类。
         environment = ApplicationModel.getEnvironment();
 
         DubboShutdownHook.getDubboShutdownHook().register();
@@ -502,18 +509,24 @@ public class DubboBootstrap extends GenericEventListener {
             return;
         }
 
+        // 所有 FrameworkExt 初始化
         ApplicationModel.initFrameworkExts();
 
+        // 配置中心拉配置注入 Environment
         startConfigCenter();
 
         useRegistryAsConfigCenterIfNecessary();
 
+        // 多注册中心和多协议处理
         loadRemoteConfigs();
 
+        // 校验配置
         checkGlobalConfigs();
 
+        // 初始化元数据服务 2.7.5
         initMetadataService();
 
+        // eventDispatcher.add(this)
         initEventListener();
 
         if (logger.isInfoEnabled()) {

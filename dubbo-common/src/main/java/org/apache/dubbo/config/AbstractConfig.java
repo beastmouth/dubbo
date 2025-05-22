@@ -455,14 +455,17 @@ public abstract class AbstractConfig implements Serializable {
     }
 
     public void refresh() {
+        // 根据当前AbstractConfig前缀，获取kv配置，封装为一个组合配置CompositeConfiguration，循环找setter方法通过反射注入。
         Environment env = ApplicationModel.getEnvironment();
         try {
+            // 根据前缀 比如 dubbo.service/dubbo.registry 获取一个组合配置
             CompositeConfiguration compositeConfiguration = env.getPrefixedConfiguration(this);
             // loop methods, get override value and set the new value back to method
             Method[] methods = getClass().getMethods();
             for (Method method : methods) {
                 if (MethodUtils.isSetter(method)) {
                     try {
+                        // 普通 setter 方法注入
                         String value = StringUtils.trim(compositeConfiguration.getString(extractPropertyName(getClass(), method)));
                         // isTypeMatch() is called to avoid duplicate and incorrect update, for example, we have two 'setGeneric' methods in ReferenceConfig.
                         if (StringUtils.isNotEmpty(value) && ClassUtils.isTypeMatch(method.getParameterTypes()[0], value)) {
@@ -474,6 +477,7 @@ public abstract class AbstractConfig implements Serializable {
                                 ", please make sure every property has getter/setter method provided.");
                     }
                 } else if (isParametersSetter(method)) {
+                    // setParameter(Map) 注入
                     String value = StringUtils.trim(compositeConfiguration.getString(extractPropertyName(getClass(), method)));
                     if (StringUtils.isNotEmpty(value)) {
                         Map<String, String> map = invokeGetParameters(getClass(), this);

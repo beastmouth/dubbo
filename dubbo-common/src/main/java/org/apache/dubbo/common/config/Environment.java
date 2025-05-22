@@ -116,6 +116,14 @@ public class Environment extends LifecycleAdapter implements FrameworkExt {
      * @return
      */
     public synchronized CompositeConfiguration getPrefixedConfiguration(AbstractConfig config) {
+        // 配置优先级由高到低：
+        // 1）java环境变量如-D参数
+        // 2）系统环境变量
+        // 3）配置中心针对应用级别配置
+        // 4）配置中心针对全局配置
+        // 5）AbstractConfig.metadata
+        // 6）文件系统dubbo.properties和OrderedPropertiesProviderSPI注入的properties
+
 //        CompositeConfiguration prefixedConfiguration =
 //                prefixedConfigurations.putIfAbsent(config, new CompositeConfiguration(config.getPrefix(), config.getId()));
 //        if (prefixedConfiguration != null) {

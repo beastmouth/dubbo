@@ -180,19 +180,36 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         dispatch(new ServiceConfigUnexportedEvent(this));
     }
 
+    /**
+     * 主要流程分为三步
+     * 1.环境初始化
+     * 2.ServiceConfig 二次填充和校验
+     * 3.doExport 真正暴露 rpc 服务
+     */
     public synchronized void export() {
+        // 是否允许暴露 serviceConfig.export or providerConfig.export
         if (!shouldExport()) {
             return;
         }
 
+        // 【step1】2.7.5新单例api 初始化Environment全局配置
         if (bootstrap == null) {
+            // DubboBootstrap是2.7.5新增的api，是个单例对象，可以统一管理整个dubbo的配置和启动，和Netty的ServerBootstrap差不多都是一个意思。
+            // 利用DubboBootstrap可以支持应用粒度注册发现、元数据中心等新特性
+            // DubboBootstrap 单例对象对象构造阶段会做 3 件事情
+            // 1.创建 ConfigManager
+            // 2.创建 Environment
+            // 3.注册 ShutdownHook，用于在进程结束前执行一些销毁动作，比如 RPC 服务注销等
             bootstrap = DubboBootstrap.getInstance();
             bootstrap.init();
         }
 
+        // 【step2】serviceConfig二次填充并校验
+        // 为什么叫它二次填充，是因为在用户硬编码之后，一些属性会被覆盖或者赋予默认值，认为是一种二次加工。
         checkAndUpdateSubConfigs();
 
         //init serviceMetadata
+        // RPC服务元数据信息 暂时忽略
         serviceMetadata.setVersion(version);
         serviceMetadata.setGroup(group);
         serviceMetadata.setDefaultGroup(group);
@@ -201,11 +218,14 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         serviceMetadata.setTarget(getRef());
 
         if (shouldDelay()) {
+            // 特性：延迟暴露，忽略
             DELAY_EXPORT_EXECUTOR.schedule(this::doExport, getDelay(), TimeUnit.MILLISECONDS);
         } else {
+            // 【step3】暴露【核心】
             doExport();
         }
 
+        // 2.7.5 发布ServiceConfigExportedEvent事件
         exported();
     }
 
@@ -214,26 +234,38 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         dispatch(new ServiceConfigExportedEvent(this));
     }
 
+    // ServiceConfig二次填充，笔者将其分为两类：
+    // 1）复合属性注入：如RegistryConfig注入，当ServiceConfig一些复合配置为空，从上级获取注入。
+    // 2）简单属性注入：如ServiceConfig.delay延迟暴露，从Environment中获取kv配置，通过反射注入。
     private void checkAndUpdateSubConfigs() {
         // Use default configs defined explicitly with global scope
+        // 合并配置，比如 ApplicationConfig 的 RegistryConfig 可以运用到 ServiceConfig 上
         completeCompoundConfigs();
+        // ProviderConfig 默认配置
         checkDefault();
+        // Environment 注入 ProtocolConfig 并校验
         checkProtocol();
         // init some null configuration.
+        // 扩展点 ConfigInitializer.initServiceConfig(this)
         List<ConfigInitializer> configInitializers = ExtensionLoader.getExtensionLoader(ConfigInitializer.class)
                 .getActivateExtension(URL.valueOf("configInitializer://"), (String[]) null);
         configInitializers.forEach(e -> e.initServiceConfig(this));
 
         // if protocol is not injvm checkRegistry
+        // protocol 不仅包含 injvm
         if (!isOnlyInJvm()) {
+            // Environment 注入 RegistryConfig 并校验
             checkRegistry();
         }
+        // Environment 注入简单属性到 ServiceConfig
+        // 比如 dubbo.service.org.apache.dubbo.demo.DemoService.delay=3000
         this.refresh();
 
         if (StringUtils.isEmpty(interfaceName)) {
             throw new IllegalStateException("<dubbo:service interface=\"\" /> interface not allow null!");
         }
 
+        // 泛化调用校验
         if (ref instanceof GenericService) {
             interfaceClass = GenericService.class;
             if (StringUtils.isEmpty(generic)) {
@@ -250,6 +282,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
             checkRef();
             generic = Boolean.FALSE.toString();
         }
+        // Local 废弃，用 stub
         if (local != null) {
             if ("true".equals(local)) {
                 local = interfaceName + "Local";
@@ -264,6 +297,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                 throw new IllegalStateException("The local implementation class " + localClass.getName() + " not implement interface " + interfaceName);
             }
         }
+        // 本地存根 Stub 校验
         if (stub != null) {
             if ("true".equals(stub)) {
                 stub = interfaceName + "Stub";
@@ -279,8 +313,11 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
             }
         }
         checkStubAndLocal(interfaceClass);
+        // Mock 校验
         ConfigValidationUtils.checkMock(interfaceClass, this);
+        // 校验自己 ServiceConfig
         ConfigValidationUtils.validateServiceConfig(this);
+        // 扩展点 ConfigPostProcessor.postProcessServiceConfig(this)
         postProcessConfig();
     }
 
@@ -303,7 +340,9 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void doExportUrls() {
         ServiceRepository repository = ApplicationModel.getServiceRepository();
+        // 注册 ServiceDescriptor RPC 服务描述
         ServiceDescriptor serviceDescriptor = repository.registerService(getInterfaceClass());
+        // 注册 ProviderModel RPC 服务提供者模型
         repository.registerProvider(
                 getUniqueServiceName(),
                 ref,
@@ -312,8 +351,11 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                 serviceMetadata
         );
 
+        // 根据 RegistryConfig 构造注册中心 URL
+        // registry://127.0.0.1:2181/org.apache.dubbo.registry.RegistryService?application=demo&dubbo=2.0.2&pid=28847&registry=zookeeper&timestamp=16045622509
         List<URL> registryURLs = ConfigValidationUtils.loadRegistries(this, true);
 
+        // 循环所有支持的协议
         for (ProtocolConfig protocolConfig : protocols) {
             String pathKey = URL.buildKey(getContextPath(protocolConfig)
                     .map(p -> p + "/" + path)
@@ -322,6 +364,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
             repository.registerService(pathKey, interfaceClass);
             // TODO, uncomment this line once service key is unified
             serviceMetadata.setServiceKey(pathKey);
+            // 暴露【核心】
             doExportUrlsFor1Protocol(protocolConfig, registryURLs);
         }
     }
