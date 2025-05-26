@@ -109,6 +109,7 @@ public abstract class AbstractRegistryFactory implements RegistryFactory {
                 .addParameter(INTERFACE_KEY, RegistryService.class.getName())
                 .removeParameters(EXPORT_KEY, REFER_KEY)
                 .build();
+        // key=zookeeper://127.0.0.1:2181/org.apache.dubbo.registry.RegistryService
         String key = createRegistryCacheKey(url);
         // Lock the registry access process to ensure a single instance of the registry
         LOCK.lock();
@@ -118,6 +119,7 @@ public abstract class AbstractRegistryFactory implements RegistryFactory {
                 return registry;
             }
             //create registry by spi/ioc
+            // 基本上所有注册中心都是利用三方jar实现
             registry = createRegistry(url);
             if (registry == null) {
                 throw new IllegalStateException("Can not create registry " + url);

@@ -37,6 +37,7 @@ import static org.apache.dubbo.common.constants.CommonConstants.INVOKER_LISTENER
 
 /**
  * ListenerProtocol
+ * 主要利用 InvokerListener SPI 实现一些事件监听
  */
 public class ProtocolListenerWrapper implements Protocol {
 

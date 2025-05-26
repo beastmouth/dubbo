@@ -50,9 +50,17 @@ public interface ProxyFactory {
      * create invoker.
      *
      * @param <T>
-     * @param proxy
-     * @param type
-     * @param url
+     * @param proxy proxy 命名不太符合实际语义，应该改为 target 更合适，因为传入的实际上是 rpc 服务实现类实例，如 DemoService 的实现 DemoServiceImpl
+     * @param type rpc 服务接口，如 DemoService
+     * @param url 注册中心 url，且 export 参数为发布到注册中心的 url 如
+     * registry://127.0.0.1:2181/org.apache.dubbo.registry.RegistryService?application=heihei-app&dubbo=2.0.2&pid=3337&registry=zookeeper&timestamp=1678540659987
+     * &
+     * export=dubbo://127.0.0.1:20881/org.apache.dubbo.demo.DemoService?
+     * anyhost=true&application=heihei-app&bind.ip=127.0.0.1&bind.port=20881&
+     * deprecated=false&dubbo=2.0.2&
+     * dynamic=true&generic=false&
+     * interface=org.apache.dubbo.demo.DemoService&methods=sayHello,sayHelloAsync&
+     * pid=3337&release=&scope=remote&side=provider&timestamp=1678540660025
      * @return invoker
      */
     @Adaptive({PROXY_KEY})

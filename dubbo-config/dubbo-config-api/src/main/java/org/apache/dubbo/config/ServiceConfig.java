@@ -344,6 +344,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         ServiceDescriptor serviceDescriptor = repository.registerService(getInterfaceClass());
         // 注册 ProviderModel RPC 服务提供者模型
         repository.registerProvider(
+                // interface接口+group分组+version版本 唯一确定
                 getUniqueServiceName(),
                 ref,
                 serviceDescriptor,
@@ -375,6 +376,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
             name = DUBBO;
         }
 
+        // 将各种配置，注入这个 map，用 map 作为 parameter，构造 url
         Map<String, String> map = new HashMap<String, String>();
         map.put(SIDE_KEY, PROVIDER_SIDE);
 
@@ -387,11 +389,13 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         AbstractConfig.appendParameters(map, provider);
         AbstractConfig.appendParameters(map, protocolConfig);
         AbstractConfig.appendParameters(map, this);
+        // 元数据相关忽略
         MetadataReportConfig metadataReportConfig = getMetadataReportConfig();
         if (metadataReportConfig != null && metadataReportConfig.isValid()) {
             map.putIfAbsent(METADATA_KEY, REMOTE_METADATA_STORAGE_TYPE);
         }
         if (CollectionUtils.isNotEmpty(getMethods())) {
+            // map 填充 rpc 服务方法信息
             for (MethodConfig method : getMethods()) {
                 AbstractConfig.appendParameters(map, method, method.getName());
                 String retryKey = method.getName() + ".retry";
@@ -485,9 +489,11 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
         // export service
         String host = findConfigedHosts(protocolConfig, registryURLs, map);
         Integer port = findConfigedPorts(protocolConfig, name, map);
+        // 暴露到注册中心的 url【关注】
         URL url = new URL(name, host, port, getContextPath(protocolConfig).map(p -> p + "/" + path).orElse(path), map);
 
         // You can customize Configurator to append extra parameters
+        // 扩展点 ConfiguratorFactory 对 url 做特殊处理
         if (ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class)
                 .hasExtension(url.getProtocol())) {
             url = ExtensionLoader.getExtensionLoader(ConfiguratorFactory.class)
@@ -500,6 +506,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
 
             // export to local if the config is not remote (export to remote only when config is remote)
             if (!SCOPE_REMOTE.equalsIgnoreCase(scope)) {
+                // 暴露 injvm 协议
                 exportLocal(url);
             }
             // export to remote if the config is not local (export to local only when config is local)
@@ -529,9 +536,17 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                             registryURL = registryURL.addParameter(PROXY_KEY, proxy);
                         }
 
+                        // registryURL = 注册中心的 url，其中 export 参数对应发布到注册中心的 rpc 协议 url
+                        // 创建代理对象，负责当前 RPC 服务的方法调用
                         Invoker<?> invoker = PROXY_FACTORY.getInvoker(ref, (Class) interfaceClass, registryURL.addParameterAndEncoded(EXPORT_KEY, url.toFullString()));
                         DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
 
+                        // 暴露
+                        // 走Protocol的自适应扩展点实现。
+                        // AdaptiveClassCodeGenerator会生成自适应扩展类，如果参数列表没有url，会从参数列表里找一个参数有getUrl方法，用他作为获取url途径。
+                        // 这里Invoker就有getUrl方法，对应url就是构造Invoker时使用的。
+                        // 对于protocol参数支持调用url#getProtocol方法获取扩展名，也就是说这里会先走RegistryProtocol实现。
+                        // 进入 RegistryProtocol 之前，会先走两个 Wrapper 扩展点 【ProtocolListenerWrapper 和 ProtocolFilterWrapper】
                         Exporter<?> exporter = PROTOCOL.export(wrapperInvoker);
                         exporters.add(exporter);
                     }
@@ -549,6 +564,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                  * @since 2.7.0
                  * ServiceData Store
                  */
+                // 元数据服务 发布服务定义
                 WritableMetadataService metadataService = WritableMetadataService.getExtension(url.getParameter(METADATA_KEY, DEFAULT_METADATA_STORAGE_TYPE));
                 if (metadataService != null) {
                     metadataService.publishServiceDefinition(url);

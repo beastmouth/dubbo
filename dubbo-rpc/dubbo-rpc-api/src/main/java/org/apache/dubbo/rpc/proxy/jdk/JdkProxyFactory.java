@@ -27,6 +27,7 @@ import java.lang.reflect.Proxy;
 
 /**
  * JdkRpcProxyFactory
+ * 用jdk的api实现的代理工厂
  */
 public class JdkProxyFactory extends AbstractProxyFactory {
 
@@ -39,6 +40,7 @@ public class JdkProxyFactory extends AbstractProxyFactory {
     @Override
     public <T> Invoker<T> getInvoker(T proxy, Class<T> type, URL url) {
         return new AbstractProxyInvoker<T>(proxy, type, url) {
+            // JdkProxyFactory#getInvoker将target（DemoServiceImpl）封装到AbstractProxyInvoker中，invoke方法就能用传入的方法和参数直接调用到目标类上。
             @Override
             protected Object doInvoke(T proxy, String methodName,
                                       Class<?>[] parameterTypes,

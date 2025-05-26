@@ -38,15 +38,19 @@ public class ServiceRepository extends LifecycleAdapter implements FrameworkExt 
     public static final String NAME = "repository";
 
     // services
+    // rpc服务类名-服务描述
     private ConcurrentMap<String, ServiceDescriptor> services = new ConcurrentHashMap<>();
 
     // consumers
+    // rpc服务key-消费者模型
     private ConcurrentMap<String, ConsumerModel> consumers = new ConcurrentHashMap<>();
 
     // providers
+    // rpc服务key-提供者模型
     private ConcurrentMap<String, ProviderModel> providers = new ConcurrentHashMap<>();
 
     // useful to find a provider model quickly with serviceInterfaceName:version
+    // rpc服务key无group-提供者模型
     private ConcurrentMap<String, ProviderModel> providersWithoutGroup = new ConcurrentHashMap<>();
 
     public ServiceRepository() {

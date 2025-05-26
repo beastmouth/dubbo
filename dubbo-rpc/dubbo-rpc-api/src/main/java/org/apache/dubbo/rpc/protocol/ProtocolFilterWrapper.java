@@ -37,6 +37,7 @@ import static org.apache.dubbo.common.constants.CommonConstants.SERVICE_FILTER_K
 
 /**
  * ListenerProtocol
+ * 做了个特殊处理，暴露阶段会经过两次这个export方法（提示：Wrapper对象是两个不同的对象，并不是内部包装的protocol会变，见SPI实现），第一次包装的是RegistryProtocol。
  */
 public class ProtocolFilterWrapper implements Protocol {
 
@@ -51,6 +52,7 @@ public class ProtocolFilterWrapper implements Protocol {
 
     private static <T> Invoker<T> buildInvokerChain(final Invoker<T> invoker, String key, String group) {
         Invoker<T> last = invoker;
+        // 这个方法会将特别常用的扩展点Filter，适配为Invoker，形成一个Invoker链。
         List<Filter> filters = ExtensionLoader.getExtensionLoader(Filter.class).getActivateExtension(invoker.getUrl(), key, group);
 
         if (!filters.isEmpty()) {
@@ -148,8 +150,11 @@ public class ProtocolFilterWrapper implements Protocol {
     @Override
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
         if (UrlUtils.isRegistry(invoker.getUrl())) {
+            // 首次进这里，protocol=RegistryProtocol
             return protocol.export(invoker);
         }
+        // 后面会进这里，暴露 rpc 服务，比如 protocol=DubboProtocol
+        // Invoker被Filter包装后（buildInvokerChain），export最终调用到rpc协议的实现类，比如DubboProtocol#export。
         return protocol.export(buildInvokerChain(invoker, SERVICE_FILTER_KEY, CommonConstants.PROVIDER));
     }
 

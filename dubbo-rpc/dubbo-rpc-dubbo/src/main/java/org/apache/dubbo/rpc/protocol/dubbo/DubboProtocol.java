@@ -277,11 +277,15 @@ public class DubboProtocol extends AbstractProtocol {
         return DEFAULT_PORT;
     }
 
+    /**
+     * 创建DubboExporter，包裹Invoker，缓存在内部的exporterMap中
+     */
     @Override
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
         URL url = invoker.getUrl();
 
         // export service.
+        // exporterMap的key={分组}/{rpc服务}:{版本号}:{端口}。
         String key = serviceKey(url);
         DubboExporter<T> exporter = new DubboExporter<T>(invoker, key, exporterMap);
         exporterMap.put(key, exporter);
@@ -300,6 +304,7 @@ public class DubboProtocol extends AbstractProtocol {
             }
         }
 
+        // 对于每个address（host+port），创建一个单例的ProtocolServer。
         openServer(url);
         optimizeSerialization(url);
 
@@ -317,6 +322,8 @@ public class DubboProtocol extends AbstractProtocol {
                 synchronized (this) {
                     server = serverMap.get(key);
                     if (server == null) {
+                        // 默认：创建netty server
+                        // netty4.NettyTransporter，netty的相关配置项都来源于url
                         serverMap.put(key, createServer(url));
                     }
                 }

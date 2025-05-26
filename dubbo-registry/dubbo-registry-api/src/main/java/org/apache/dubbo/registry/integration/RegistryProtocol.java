@@ -169,7 +169,10 @@ public class RegistryProtocol implements Protocol {
     }
 
     public void register(URL registryUrl, URL registeredProviderUrl) {
+        // 根据 url 的协议 protocol 获取 Registry实现
         Registry registry = registryFactory.getRegistry(registryUrl);
+        // 注册
+        // 基本所有Registry都继承自FailbackRegistry，FailbackRegistry实现register方法，实现重试
         registry.register(registeredProviderUrl);
 
         ProviderModel model = ApplicationModel.getProviderModel(registeredProviderUrl.getServiceKey());
@@ -182,28 +185,34 @@ public class RegistryProtocol implements Protocol {
 
     @Override
     public <T> Exporter<T> export(final Invoker<T> originInvoker) throws RpcException {
+        // 构造注册中心协议 url，zookeeper://....
         URL registryUrl = getRegistryUrl(originInvoker);
         // url to export locally
+        // 注册 url=export 参数 url，就是之前 map 拼装的 url，dubbo://....
         URL providerUrl = getProviderUrl(originInvoker);
 
         // Subscribe the override data
         // FIXME When the provider subscribes, it will affect the scene : a certain JVM exposes the service and call
         //  the same service. Because the subscribed is cached key with the name of the service, it causes the
         //  subscription information to cover.
+        // url 动态配置相关，暂时忽略，provider://
         final URL overrideSubscribeUrl = getSubscribedOverrideUrl(providerUrl);
         final OverrideListener overrideSubscribeListener = new OverrideListener(overrideSubscribeUrl, originInvoker);
         overrideListeners.put(overrideSubscribeUrl, overrideSubscribeListener);
 
         providerUrl = overrideUrlWithConfig(providerUrl, overrideSubscribeListener);
         //export invoker
+        // 暴露 rpc 服务，用不同的 url(providerUrl)走一次 Protocol 的 Adaptive 实现
         final ExporterChangeableWrapper<T> exporter = doLocalExport(originInvoker, providerUrl);
 
         // url to registry
         final Registry registry = getRegistry(originInvoker);
+        // 简化注册 url dubbo://...
         final URL registeredProviderUrl = getUrlToRegistry(providerUrl, registryUrl);
         // decide if we need to delay publish
         boolean register = providerUrl.getParameter(REGISTER_KEY, true);
         if (register) {
+            // rpc 服务注册到注册中心
             register(registryUrl, registeredProviderUrl);
         }
 
@@ -213,6 +222,7 @@ public class RegistryProtocol implements Protocol {
         exporter.setRegisterUrl(registeredProviderUrl);
         exporter.setSubscribeUrl(overrideSubscribeUrl);
 
+        // RegistryProtocolListenerSPI
         notifyExport(exporter);
         //Ensure that a new exporter instance is returned every time export
         return new DestroyableExporter<>(exporter);
@@ -241,6 +251,8 @@ public class RegistryProtocol implements Protocol {
 
         return (ExporterChangeableWrapper<T>) bounds.computeIfAbsent(key, s -> {
             Invoker<?> invokerDelegate = new InvokerDelegate<>(originInvoker, providerUrl);
+            // 暴露 rpc 服务，RegistryProtocol 通过 setter 注入的 protocol 是个 Adaptive 实现
+            // 这次，会再次进入ProtocolFilterWrapper的export方法，只不过url变成了rpc协议，比如dubbo://
             return new ExporterChangeableWrapper<>((Exporter<T>) protocol.export(invokerDelegate), originInvoker);
         });
     }
