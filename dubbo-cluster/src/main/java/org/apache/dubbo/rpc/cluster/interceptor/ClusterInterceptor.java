@@ -29,8 +29,10 @@ import org.apache.dubbo.rpc.cluster.support.AbstractClusterInvoker;
 @SPI
 public interface ClusterInterceptor {
 
+    // 发起rpc请求前，创建rpc请求上下文，清除rpc响应上下文
     void before(AbstractClusterInvoker<?> clusterInvoker, Invocation invocation);
 
+    // // 发起rpc请求完成，还未收到rpc响应，清除rpc请求上下文
     void after(AbstractClusterInvoker<?> clusterInvoker, Invocation invocation);
 
     /**
@@ -49,8 +51,10 @@ public interface ClusterInterceptor {
 
     interface Listener {
 
+        // 收到rpc响应，且响应成功，创建rpc响应上下文
         void onMessage(Result appResponse, AbstractClusterInvoker<?> clusterInvoker, Invocation invocation);
 
+        // rpc响应失败，什么都不做
         void onError(Throwable t, AbstractClusterInvoker<?> clusterInvoker, Invocation invocation);
     }
 }

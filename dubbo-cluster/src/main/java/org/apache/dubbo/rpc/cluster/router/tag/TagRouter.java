@@ -97,6 +97,7 @@ public class TagRouter extends AbstractRouter implements ConfigurationListener {
         }
 
         List<Invoker<T>> result = invokers;
+        // 优先走RpcContext获取tag，其次走订阅url获取tag
         String tag = StringUtils.isEmpty(invocation.getAttachment(TAG_KEY)) ? url.getParameter(TAG_KEY) :
                 invocation.getAttachment(TAG_KEY);
 
@@ -113,6 +114,7 @@ public class TagRouter extends AbstractRouter implements ConfigurationListener {
             } else {
                 // dynamic tag group doesn't have any item about the requested app OR it's null after filtered by
                 // dynamic tag group but force=false. check static tag
+                // 如果有tag，优先找同tag的provider
                 result = filterInvoker(invokers, invoker -> tag.equals(invoker.getUrl().getParameter(TAG_KEY)));
             }
             // If there's no tagged providers that can match the current tagged request. force.tag is set by default
@@ -124,6 +126,7 @@ public class TagRouter extends AbstractRouter implements ConfigurationListener {
             else {
                 List<Invoker<T>> tmp = filterInvoker(invokers, invoker -> addressNotMatches(invoker.getUrl(),
                         tagRouterRuleCopy.getAddresses()));
+                // 否则，默认找无tag的provider
                 return filterInvoker(tmp, invoker -> StringUtils.isEmpty(invoker.getUrl().getParameter(TAG_KEY)));
             }
         } else {
@@ -141,6 +144,7 @@ public class TagRouter extends AbstractRouter implements ConfigurationListener {
             }
             return filterInvoker(result, invoker -> {
                 String localTag = invoker.getUrl().getParameter(TAG_KEY);
+                // 无tag，找无tag的provider
                 return StringUtils.isEmpty(localTag) || !tagRouterRuleCopy.getTagNames().contains(localTag);
             });
         }

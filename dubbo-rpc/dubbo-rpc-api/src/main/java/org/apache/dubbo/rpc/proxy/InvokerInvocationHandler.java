@@ -62,6 +62,7 @@ public class InvokerInvocationHandler implements InvocationHandler {
         } else if (parameterTypes.length == 1 && "equals".equals(methodName)) {
             return invoker.equals(args[0]);
         }
+        // 把rpc方法的关键信息，都包装为一个RpcInvocation贯穿Invoker#invoke
         RpcInvocation rpcInvocation = new RpcInvocation(method, invoker.getInterface().getName(), args);
         String serviceKey = invoker.getUrl().getServiceKey();
         rpcInvocation.setTargetServiceUniqueName(serviceKey);
@@ -71,6 +72,8 @@ public class InvokerInvocationHandler implements InvocationHandler {
             rpcInvocation.put(Constants.METHOD_MODEL, consumerModel.getMethodModel(method));
         }
 
+        // 远程调用
+        // 如果rpc异常，抛出，否则正常返回rpc方法结果
         return invoker.invoke(rpcInvocation).recreate();
     }
 }

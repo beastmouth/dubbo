@@ -120,16 +120,26 @@ final class HeaderExchangeChannel implements ExchangeChannel {
         return request(request, channel.getUrl().getPositiveParameter(TIMEOUT_KEY, DEFAULT_TIMEOUT), executor);
     }
 
+    // 一般情况下，rpc框架业务线程和io线程都是分开的。
+    // 为了解决这个问题，一般设计方式都遵循如下规则：
+    // 1）【业务线程】为request分配唯一id
+    // 2）【业务线程】将request-id和request-future缓存到全局map
+    // 3）【定时线程】对于全局map做定时扫描，如果超时，用指定线程池执行future的回调
+    // 4）【io线程】发送请求到io线程
+    // 5）【io线程】io线程收到响应，从全局map根据响应里的request-id拿到request-future，提交到6线程
+    // 6）【rpc响应线程（异步）/业务线程（同步）】执行future的回调
     @Override
     public CompletableFuture<Object> request(Object request, int timeout, ExecutorService executor) throws RemotingException {
         if (closed) {
             throw new RemotingException(this.getLocalAddress(), null, "Failed to send request " + request + ", cause: The channel " + this + " is closed!");
         }
         // create request.
+        // 此处做了1234步
         Request req = new Request();
         req.setVersion(Version.getProtocolVersion());
         req.setTwoWay(true);
         req.setData(request);
+        // reqId -> future
         DefaultFuture future = DefaultFuture.newFuture(channel, req, timeout, executor);
         try {
             channel.send(req);

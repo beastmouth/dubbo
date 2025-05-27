@@ -117,6 +117,7 @@ public class DubboProtocol extends AbstractProtocol {
             }
 
             Invocation inv = (Invocation) message;
+            // 根据Invocation找Invoker
             Invoker<?> invoker = getInvoker(channel, inv);
             // need to consider backward-compatibility if it's a callback
             if (Boolean.TRUE.toString().equals(inv.getObjectAttachments().get(IS_CALLBACK_SERVICE_INVOKE))) {
@@ -142,6 +143,9 @@ public class DubboProtocol extends AbstractProtocol {
                 }
             }
             RpcContext.getContext().setRemoteAddress(channel.getRemoteAddress());
+            // 执行invoker
+            // 接下来经过一系列group=provider的Filter。（例如 ContextFilter）
+            // 在进入下游invoker前，将Invocation中的关键信息注入RpcContext请求rpc上下文中。
             Result result = invoker.invoke(inv);
             return result.thenApply(Function.identity());
         }
@@ -252,12 +256,14 @@ public class DubboProtocol extends AbstractProtocol {
             inv.getObjectAttachments().put(IS_CALLBACK_SERVICE_INVOKE, Boolean.TRUE.toString());
         }
 
+        // 拼接serviceKey
         String serviceKey = serviceKey(
                 port,
                 path,
                 (String) inv.getObjectAttachments().get(VERSION_KEY),
                 (String) inv.getObjectAttachments().get(GROUP_KEY)
         );
+        // 根据serviceKey找到暴露的Exporter
         DubboExporter<?> exporter = (DubboExporter<?>) exporterMap.get(serviceKey);
 
         if (exporter == null) {
@@ -265,6 +271,7 @@ public class DubboProtocol extends AbstractProtocol {
                     ", channel: consumer: " + channel.getRemoteAddress() + " --> provider: " + channel.getLocalAddress() + ", message:" + getInvocationWithoutData(inv));
         }
 
+        // 返回Exporter包装的Invoker
         return exporter.getInvoker();
     }
 
@@ -583,6 +590,7 @@ public class DubboProtocol extends AbstractProtocol {
         // client type setting.
         String str = url.getParameter(CLIENT_KEY, url.getParameter(SERVER_KEY, DEFAULT_REMOTING_CLIENT));
 
+        // 序列化方式为Dubbo，所有的Request都会走DubboCountCodec进行序列化
         url = url.addParameter(CODEC_KEY, DubboCodec.NAME);
         // enable heartbeat by default
         url = url.addParameterIfAbsent(HEARTBEAT_KEY, String.valueOf(DEFAULT_HEARTBEAT));

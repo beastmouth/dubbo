@@ -54,6 +54,7 @@ public class RpcContext {
 
     /**
      * use internal thread local to improve performance
+     * RpcContext.LOCAL的生命周期，是一次rpc请求，用户也可以在rpc方法调用前，主动初始化RpcContext.LOCAL实现隐式传参
      */
     // FIXME REQUEST_CONTEXT
     private static final InternalThreadLocal<RpcContext> LOCAL = new InternalThreadLocal<RpcContext>() {
@@ -64,6 +65,7 @@ public class RpcContext {
     };
 
     // FIXME RESPONSE_CONTEXT
+    // RpcContext.SERVER_LOCAL的生命周期很长，是一次rpc响应到下一次rpc请求之前，也就是说用户可以在rpc方法调用结束后一直使用本次rpc调用的响应上下文，直至发生下次rpc调用
     private static final InternalThreadLocal<RpcContext> SERVER_LOCAL = new InternalThreadLocal<RpcContext>() {
         @Override
         protected RpcContext initialValue() {

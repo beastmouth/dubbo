@@ -613,6 +613,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
 
     @Override
     public List<Invoker<T>> doList(Invocation invocation) {
+        // 注册中心无provider，FORBIDDEN_EXCEPTION异常
         if (forbidden) {
             // 1. No service provider 2. Service providers are disabled
             throw new RpcException(RpcException.FORBIDDEN_EXCEPTION, "No provider available from registry " +
@@ -621,13 +622,17 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
                     ", please check status of providers(disabled, not registered or in blacklist).");
         }
 
+        // 消费方订阅多个group，没有路由逻辑
         if (multiGroup) {
             return this.invokers == null ? Collections.emptyList() : this.invokers;
         }
 
+        // RouterChain#route过滤invokers
         List<Invoker<T>> invokers = null;
         try {
             // Get invokers from cache, only runtime routers will be executed.
+            // 循环所有Router，过滤invokers
+            // invokers可以认为是内存注册表（rpc服务级别），只有注册中心providers列表变更，这里才会更新，rpc期间不强依赖注册中心的远程注册表
             invokers = routerChain.route(getConsumerUrl(), invocation);
         } catch (Throwable t) {
             logger.error("Failed to execute router: " + getUrl() + ", cause: " + t.getMessage(), t);

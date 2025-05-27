@@ -59,6 +59,7 @@ public abstract class AbstractCluster implements Cluster {
 
     protected abstract <T> AbstractClusterInvoker<T> doJoin(Directory<T> directory) throws RpcException;
 
+    // AbstractCluster内部类InterceptorInvokerNode，负责适配ClusterInterceptor实现到Invoker。
     protected class InterceptorInvokerNode<T> extends AbstractClusterInvoker<T> {
 
         private AbstractClusterInvoker<T> clusterInvoker;
@@ -92,7 +93,9 @@ public abstract class AbstractCluster implements Cluster {
         public Result invoke(Invocation invocation) throws RpcException {
             Result asyncResult;
             try {
+                // 前置拦截
                 interceptor.before(next, invocation);
+                // 执行
                 asyncResult = interceptor.intercept(next, invocation);
             } catch (Exception e) {
                 // onError callback
@@ -102,10 +105,12 @@ public abstract class AbstractCluster implements Cluster {
                 }
                 throw e;
             } finally {
+                // 后置拦截
                 interceptor.after(next, invocation);
             }
             return asyncResult.whenCompleteWithContext((r, t) -> {
                 // onResponse callback
+                // rpc请求完成，回调ClusterInterceptor.Listener
                 if (interceptor instanceof ClusterInterceptor.Listener) {
                     ClusterInterceptor.Listener listener = (ClusterInterceptor.Listener) interceptor;
                     if (t == null) {

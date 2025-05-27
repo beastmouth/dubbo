@@ -47,13 +47,16 @@ public class RouterChain<T> {
     }
 
     private RouterChain(URL url) {
+        // 默认url未指定router，获取所有RouterFactory激活扩展点
         List<RouterFactory> extensionFactories = ExtensionLoader.getExtensionLoader(RouterFactory.class)
                 .getActivateExtension(url, "router");
 
+        // RouterFactory#getRouter创建Router
         List<Router> routers = extensionFactories.stream()
                 .map(factory -> factory.getRouter(url))
                 .collect(Collectors.toList());
 
+        // 注入routers
         initWithRouters(routers);
     }
 
@@ -95,7 +98,15 @@ public class RouterChain<T> {
      */
     public List<Invoker<T>> route(URL url, Invocation invocation) {
         List<Invoker<T>> finalInvokers = invokers;
+        // 默认情况下会有四个Router：
+        // 1）MockInvokersSelector：本地伪装特性，忽略
+        // 2）TagRouter：根据tag过滤Invoker
+        // 支持三种模式配置tag路由，优先级从高到低：
+        // a）配置中心路由规则；b）RpcContext指定tag；c）reference指定tag
+        // 3）ServiceRouter：基于rpc服务的路由，需要结合配置中心
+        // 4）AppRouter：基于应用的路由，需要结合配置中心
         for (Router router : routers) {
+            // tag过滤等在这里
             finalInvokers = router.route(finalInvokers, url, invocation);
         }
         return finalInvokers;

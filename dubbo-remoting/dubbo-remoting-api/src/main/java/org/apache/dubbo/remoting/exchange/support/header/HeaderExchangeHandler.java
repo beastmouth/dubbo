@@ -57,6 +57,9 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
 
     static void handleResponse(Channel channel, Response response) throws RemotingException {
         if (response != null && !response.isHeartbeat()) {
+            // 从全局futures中移除挂起请求
+            // 1）取消超时检测
+            // 2）完成future
             DefaultFuture.received(channel, response);
         }
     }
@@ -75,6 +78,7 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
         }
     }
 
+    // 执行ChannelEventRunnable
     void handleRequest(final ExchangeChannel channel, Request req) throws RemotingException {
         Response res = new Response(req.getId(), req.getVersion());
         if (req.isBroken()) {
@@ -97,6 +101,8 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
         // find handler by message class.
         Object msg = req.getData();
         try {
+            // 提交到ExchangeHandler实现，执行Invocation调用
+            // DubboProtocol
             CompletionStage<Object> future = handler.reply(channel, msg);
             future.whenComplete((appResult, t) -> {
                 try {
@@ -107,6 +113,7 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
                         res.setStatus(Response.SERVICE_ERROR);
                         res.setErrorMessage(StringUtils.toString(t));
                     }
+                    // 业务执行完毕，将rpc响应提交到io线程
                     channel.send(res);
                 } catch (RemotingException e) {
                     logger.warn("Send result to consumer failed, channel is " + channel + ", msg is " + e);

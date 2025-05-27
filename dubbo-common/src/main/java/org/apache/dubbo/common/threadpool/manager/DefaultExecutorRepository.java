@@ -66,17 +66,21 @@ public class DefaultExecutorRepository implements ExecutorRepository {
 
     /**
      * Get called when the server or client instance initiating.
+     * 在暴露阶段，provider对于每个端口开启一个业务线程池，处理业务。
      *
      * @param url
      * @return
      */
     public synchronized ExecutorService createExecutorIfAbsent(URL url) {
+        // componentKey区分是provider还是consumer
         String componentKey = EXECUTOR_SERVICE_COMPONENT_KEY;
         if (CONSUMER_SIDE.equalsIgnoreCase(url.getParameter(SIDE_KEY))) {
             componentKey = CONSUMER_SIDE;
         }
         Map<Integer, ExecutorService> executors = data.computeIfAbsent(componentKey, k -> new ConcurrentHashMap<>());
         Integer portKey = url.getPort();
+        // 每个端口对应一个ExecutorService
+        // 默认采用固定大小200+无队列+日志打印拒绝策略的线程池。
         ExecutorService executor = executors.computeIfAbsent(portKey, k -> createExecutor(url));
         // If executor has been shut down, create a new one
         if (executor.isShutdown() || executor.isTerminated()) {

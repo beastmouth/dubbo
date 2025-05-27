@@ -86,6 +86,7 @@ public class ThreadlessExecutor extends AbstractExecutorService {
             return;
         }
 
+        // 等待io线程将rpc响应任务投递到这里
         Runnable runnable = queue.take();
 
         synchronized (lock) {

@@ -438,6 +438,7 @@ public class RegistryProtocol implements Protocol {
             // 注册 consumer
             registry.register(directory.getRegisteredConsumerUrl());
         }
+        // 在服务订阅之前，RegistryProtocol会用订阅url构造RouterChain注入RegistryDirectory
         directory.buildRouterChain(subscribeUrl);
         // 订阅【会调用一次doNotify回调通知刷新invoker】
         directory.subscribe(toSubscribeUrl(subscribeUrl));

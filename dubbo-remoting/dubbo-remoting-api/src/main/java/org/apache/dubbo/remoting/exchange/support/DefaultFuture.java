@@ -82,6 +82,7 @@ public class DefaultFuture extends CompletableFuture<Object> {
         this.id = request.getId();
         this.timeout = timeout > 0 ? timeout : channel.getUrl().getPositiveParameter(TIMEOUT_KEY, DEFAULT_TIMEOUT);
         // put into waiting map.
+        // 把requestId和自己放到全局map中
         FUTURES.put(id, this);
         CHANNELS.put(id, channel);
     }
@@ -112,6 +113,7 @@ public class DefaultFuture extends CompletableFuture<Object> {
             ((ThreadlessExecutor) executor).setWaitingFuture(future);
         }
         // timeout check
+        // 超时检测
         timeoutCheck(future);
         return future;
     }
@@ -167,11 +169,13 @@ public class DefaultFuture extends CompletableFuture<Object> {
         try {
             DefaultFuture future = FUTURES.remove(response.getId());
             if (future != null) {
+                // 取消超时检测任务
                 Timeout t = future.timeoutCheckTask;
                 if (!timeout) {
                     // decrease Time
                     t.cancel();
                 }
+                // 完成future
                 future.doReceived(response);
             } else {
                 logger.warn("The timeout response finally returned at "
@@ -201,6 +205,7 @@ public class DefaultFuture extends CompletableFuture<Object> {
     }
 
     private void doReceived(Response res) {
+        // future以正常或异常完成
         if (res == null) {
             throw new IllegalStateException("response cannot be null");
         }

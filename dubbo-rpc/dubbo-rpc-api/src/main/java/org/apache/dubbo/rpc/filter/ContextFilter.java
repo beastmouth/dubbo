@@ -127,6 +127,7 @@ public class ContextFilter implements Filter, Filter.Listener {
     @Override
     public void onResponse(Result appResponse, Invoker<?> invoker, Invocation invocation) {
         // pass attachments to result
+        // 在rpc服务方法执行完毕后，将RpcContext响应rpc上下文中关键信息，注入rpc响应。
         appResponse.addObjectAttachments(RpcContext.getServerContext().getObjectAttachments());
     }
 
