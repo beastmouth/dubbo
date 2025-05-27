@@ -500,6 +500,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                     .getExtension(url.getProtocol()).getConfigurator(url).configure(url);
         }
 
+        // 默认scope为空
         String scope = url.getParameter(SCOPE_KEY);
         // don't export when none is configured
         if (!SCOPE_NONE.equalsIgnoreCase(scope)) {
@@ -507,6 +508,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
             // export to local if the config is not remote (export to remote only when config is remote)
             if (!SCOPE_REMOTE.equalsIgnoreCase(scope)) {
                 // 暴露 injvm 协议
+                // 为空，会先本地暴露
                 exportLocal(url);
             }
             // export to remote if the config is not local (export to local only when config is local)
@@ -547,6 +549,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                         // 这里Invoker就有getUrl方法，对应url就是构造Invoker时使用的。
                         // 对于protocol参数支持调用url#getProtocol方法获取扩展名，也就是说这里会先走RegistryProtocol实现。
                         // 进入 RegistryProtocol 之前，会先走两个 Wrapper 扩展点 【ProtocolListenerWrapper 和 ProtocolFilterWrapper】
+                        // 调用逻辑 ProtocolFilterWrapper -> ProtocolListenerWrapper -> RegistryProtocol（内部 doLocalExport) -> ProtocolFilterWrapper -> ProtocolListenerWrapper -> DubboExporter
                         Exporter<?> exporter = PROTOCOL.export(wrapperInvoker);
                         exporters.add(exporter);
                     }
