@@ -549,7 +549,7 @@ public class ServiceConfig<T> extends ServiceConfigBase<T> {
                         // 这里Invoker就有getUrl方法，对应url就是构造Invoker时使用的。
                         // 对于protocol参数支持调用url#getProtocol方法获取扩展名，也就是说这里会先走RegistryProtocol实现。
                         // 进入 RegistryProtocol 之前，会先走两个 Wrapper 扩展点 【ProtocolListenerWrapper 和 ProtocolFilterWrapper】
-                        // 调用逻辑 ProtocolFilterWrapper -> ProtocolListenerWrapper -> RegistryProtocol（内部 doLocalExport) -> ProtocolFilterWrapper -> ProtocolListenerWrapper -> DubboExporter
+                        // 调用逻辑 ProtocolListenerWrapper -> ProtocolFilterWrapper -> RegistryProtocol（内部 doLocalExport) -> ProtocolListenerWrapper -> ProtocolFilterWrapper -> DubboExporter
                         Exporter<?> exporter = PROTOCOL.export(wrapperInvoker);
                         exporters.add(exporter);
                     }

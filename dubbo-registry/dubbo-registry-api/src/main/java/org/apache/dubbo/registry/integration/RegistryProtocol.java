@@ -439,7 +439,7 @@ public class RegistryProtocol implements Protocol {
             registry.register(directory.getRegisteredConsumerUrl());
         }
         directory.buildRouterChain(subscribeUrl);
-        // 订阅【由监听时间回调通知刷新invoker】
+        // 订阅【会调用一次doNotify回调通知刷新invoker】
         directory.subscribe(toSubscribeUrl(subscribeUrl));
 
         // AdaptiveCluster 封装 Directory 为 Invoker

@@ -337,6 +337,8 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                 // 【重点】自适应Protocol执行refer方法
                 // url = registry://...
                 // 在ProtocolFilterWrapper中，和provider一样，会两次进入refer方法
+                // ProtocolListenerWrapper -> ProtocolFilterWrapper -> RegistryProtocol -> subscribe -> notify -> refreshInvoker ->
+                // ProtocolListenerWrapper -> ProtocolFilterWrapper -> DubboProtocol
                 invoker = REF_PROTOCOL.refer(interfaceClass, urls.get(0));
             } else {
                 // 【特性：多注册中心】
@@ -389,7 +391,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
         // 在ProtocolFilterWrapper中，和provider一样，会两次进入refer方法
         // 为了给用户代码使用，最终用ProxyFactory将Invoker转换为rpc服务代理
         // 在provider侧已经看到过ProxyFactory的另一个方法，将rpc服务实现转换为Invoker；
-        // 而在consumer侧，是将Invoker转换为rpc服务代理。
+        // 而在consumer侧，是将Invoker转换为rpc服务代理。(InvokerInvocationHandler 在此步塞入)
         return (T) PROXY_FACTORY.getProxy(invoker, ProtocolUtils.isGeneric(generic));
     }
 
