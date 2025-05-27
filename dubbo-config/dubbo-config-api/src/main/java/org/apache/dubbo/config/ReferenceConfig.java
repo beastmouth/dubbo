@@ -150,6 +150,10 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
         this.repository = ApplicationModel.getServiceRepository();
     }
 
+    /**
+     * 得到rpc服务的代理
+     * ReferenceConfig在首次调用get方法时会创建一个rpc服务代理并缓存
+     */
     public synchronized T get() {
         if (destroyed) {
             throw new IllegalStateException("The invoker of ReferenceConfig(" + url + ") has already destroyed!");
@@ -180,21 +184,31 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
         dispatch(new ReferenceConfigDestroyedEvent(this));
     }
 
+    /**
+     * ReferenceConfig#init方法初始化创建rpc服务代理，分为四步
+     * 1）DubboBootstrap#init：环境初始化，和服务提供方一样，主要是初始化Environment得到kv配置(与暴露服务类似)
+     * 2）ReferenceConfig二次填充和校验(与暴露服务类似)
+     * 3）拼装map，为后续组装URL做铺垫(与暴露服务类似)
+     * 4）createProxy：利用组装好的map创建rpc服务代理
+     */
     public synchronized void init() {
         if (initialized) {
             return;
         }
 
+        // 初始化 主要是Environment
         if (bootstrap == null) {
             bootstrap = DubboBootstrap.getInstance();
             bootstrap.init();
         }
 
+        // ReferenceConfig二次填充校验
         checkAndUpdateSubConfigs();
 
         checkStubAndLocal(interfaceClass);
         ConfigValidationUtils.checkMock(interfaceClass, this);
 
+        // 将各种配置注入map，为后续创建URL做铺垫
         Map<String, String> map = new HashMap<String, String>();
         map.put(SIDE_KEY, CONSUMER_SIDE);
 
@@ -255,6 +269,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
 
         serviceMetadata.getAttachments().putAll(map);
 
+        // 创建rpc服务代理
         ref = createProxy(map);
 
         serviceMetadata.setTarget(ref);
@@ -272,6 +287,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
     @SuppressWarnings({"unchecked", "rawtypes", "deprecation"})
     private T createProxy(Map<String, String> map) {
         if (shouldJvmRefer(map)) {
+            // 【特性：本地调用】直接走injvm
             URL url = new URL(LOCAL_PROTOCOL, LOCALHOST_VALUE, 0, interfaceClass.getName()).addParameters(map);
             invoker = REF_PROTOCOL.refer(interfaceClass, url);
             if (logger.isInfoEnabled()) {
@@ -280,6 +296,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
         } else {
             urls.clear();
             if (url != null && url.length() > 0) { // user specified URL, could be peer-to-peer address, or register center's address.
+                // 【特性：直连提供者】用户指定url，不走注册中心，忽略
                 String[] us = SEMICOLON_SPLIT_PATTERN.split(url);
                 if (us != null && us.length > 0) {
                     for (String u : us) {
@@ -297,6 +314,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
             } else { // assemble URL from register center's configuration
                 // if protocols not injvm checkRegistry
                 if (!LOCAL_PROTOCOL.equalsIgnoreCase(getProtocol())) {
+                    // 根据ReferenceConfig配置，构造注册中心url，即registry://...
                     checkRegistry();
                     List<URL> us = ConfigValidationUtils.loadRegistries(this, false);
                     if (CollectionUtils.isNotEmpty(us)) {
@@ -305,6 +323,7 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
                             if (monitorUrl != null) {
                                 map.put(MONITOR_KEY, URL.encode(monitorUrl.toFullString()));
                             }
+                            // 在registry://后面拼refer=map
                             urls.add(u.addParameterAndEncoded(REFER_KEY, StringUtils.toQueryString(map)));
                         }
                     }
@@ -315,8 +334,12 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
             }
 
             if (urls.size() == 1) {
+                // 【重点】自适应Protocol执行refer方法
+                // url = registry://...
+                // 在ProtocolFilterWrapper中，和provider一样，会两次进入refer方法
                 invoker = REF_PROTOCOL.refer(interfaceClass, urls.get(0));
             } else {
+                // 【特性：多注册中心】
                 List<Invoker<?>> invokers = new ArrayList<Invoker<?>>();
                 URL registryURL = null;
                 for (URL url : urls) {
@@ -362,6 +385,11 @@ public class ReferenceConfig<T> extends ReferenceConfigBase<T> {
             metadataService.publishServiceDefinition(consumerURL);
         }
         // create service proxy
+        // 【关注】自适应ProxyFactory将invoker转换为rpc服务代理对象
+        // 在ProtocolFilterWrapper中，和provider一样，会两次进入refer方法
+        // 为了给用户代码使用，最终用ProxyFactory将Invoker转换为rpc服务代理
+        // 在provider侧已经看到过ProxyFactory的另一个方法，将rpc服务实现转换为Invoker；
+        // 而在consumer侧，是将Invoker转换为rpc服务代理。
         return (T) PROXY_FACTORY.getProxy(invoker, ProtocolUtils.isGeneric(generic));
     }
 

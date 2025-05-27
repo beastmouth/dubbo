@@ -161,8 +161,11 @@ public class ProtocolFilterWrapper implements Protocol {
     @Override
     public <T> Invoker<T> refer(Class<T> type, URL url) throws RpcException {
         if (UrlUtils.isRegistry(url)) {
+            // 首次进这里，protocol=RegistryProtocol
             return protocol.refer(type, url);
         }
+        // 后面会进这里，引用 rpc 服务，比如 protocol=DubboProtocol
+        // ProtocolFilterWrapper包装扩展点，在DubboProtocol#refer返回DubboInvoker之后，和provider侧一样包了一层Filter（只不过激活扩展点分组为consumer），返回给Directory。
         return buildInvokerChain(protocol.refer(type, url), REFERENCE_FILTER_KEY, CommonConstants.CONSUMER);
     }
 

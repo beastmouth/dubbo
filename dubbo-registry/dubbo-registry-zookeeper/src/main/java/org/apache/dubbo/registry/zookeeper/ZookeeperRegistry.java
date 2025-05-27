@@ -168,15 +168,19 @@ public class ZookeeperRegistry extends FailbackRegistry {
                 }
             } else {
                 List<URL> urls = new ArrayList<>();
+                // 根据入参url=consumer://xxxx，构造出监听zk的三个path，即/dubbo/{rpc服务}/{providers,configurators,routers}
                 for (String path : toCategoriesPath(url)) {
                     ConcurrentMap<NotifyListener, ChildListener> listeners = zkListeners.computeIfAbsent(url, k -> new ConcurrentHashMap<>());
-                    ChildListener zkListener = listeners.computeIfAbsent(listener, k -> (parentPath, currentChilds) -> ZookeeperRegistry.this.notify(url, k, toUrlsWithEmpty(url, parentPath, currentChilds)));
+                    ChildListener zkListener = listeners.computeIfAbsent(listener,
+                            // 数据变化，再次通知 listener
+                            k -> (parentPath, currentChilds) -> ZookeeperRegistry.this.notify(url, k, toUrlsWithEmpty(url, parentPath, currentChilds)));
                     zkClient.create(path, false);
                     List<String> children = zkClient.addChildListener(path, zkListener);
                     if (children != null) {
                         urls.addAll(toUrlsWithEmpty(url, path, children));
                     }
                 }
+                // 只关注providers路径，首次获取rpc服务提供者urls，通知listener（RegistryDirectory）
                 notify(url, listener, urls);
             }
         } catch (Throwable e) {

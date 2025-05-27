@@ -50,6 +50,10 @@ public abstract class AbstractCluster implements Cluster {
 
     @Override
     public <T> Invoker<T> join(Directory<T> directory) throws RpcException {
+        // AbstractCluster在子类doJoin返回Invoker后，包了一层ClusterInterceptor扩展点，和Filter的做法类似
+        // 默认是FailoverCluster
+        // 其实在Cluster扩展点之外，还包了一层MockClusterWrapper。
+        // MockClusterWrapper会把上述ClusterInterceptor包裹的FailoverClusterInvoker再包一层MockClusterInvoker，官方称为本地伪装特性。
         return buildClusterInterceptors(doJoin(directory), directory.getUrl().getParameter(REFERENCE_INTERCEPTOR_KEY));
     }
 

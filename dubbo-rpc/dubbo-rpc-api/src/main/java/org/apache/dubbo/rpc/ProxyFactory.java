@@ -39,6 +39,8 @@ public interface ProxyFactory {
 
     /**
      * create proxy.
+     * ProxyFactory也有包装扩展点。
+     * StubProxyFactoryWrapper在底层ProxyFactory返回的代理对象上，可以允许包一层Stub，即官方称为本地存根的特性
      *
      * @param invoker
      * @return proxy

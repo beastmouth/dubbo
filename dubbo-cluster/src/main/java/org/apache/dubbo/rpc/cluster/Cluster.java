@@ -28,6 +28,9 @@ import org.apache.dubbo.rpc.cluster.support.FailoverCluster;
  * <a href="http://en.wikipedia.org/wiki/Computer_cluster">Cluster</a>
  * <a href="http://en.wikipedia.org/wiki/Fault-tolerant_system">Fault-Tolerant</a>
  *
+ * 虽然Directory有多个Invoker，但是对于客户端来说，最终只能暴露一个rpc服务代理。
+ * 所以需要有一层Cluster来屏蔽底层多个Invoker的事实。
+ *
  */
 @SPI(FailoverCluster.NAME)
 public interface Cluster {

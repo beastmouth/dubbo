@@ -403,11 +403,15 @@ public class DubboProtocol extends AbstractProtocol {
         }
     }
 
+    /**
+     * 根据url创建DubboInvoker，对于消费方来说这是最底层的Invoker了。
+     */
     @Override
     public <T> Invoker<T> protocolBindingRefer(Class<T> serviceType, URL url) throws RpcException {
         optimizeSerialization(url);
 
         // create rpc invoker.
+        // 默认getClients返回一个netty客户端，所有rpc服务共享
         DubboInvoker<T> invoker = new DubboInvoker<T>(serviceType, url, getClients(url), invokers);
         invokers.add(invoker);
 

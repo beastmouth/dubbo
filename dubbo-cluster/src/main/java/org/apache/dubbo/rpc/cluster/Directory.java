@@ -29,6 +29,11 @@ import java.util.List;
  * <p>
  * <a href="http://en.wikipedia.org/wiki/Directory_service">Directory Service</a>
  *
+ * Directory持有多个Invoker，运行时根据Invocation可以获取到其中部分Invoker。
+ * Directory持有的Invoker，实际上会是对应rpc协议Protocol通过refer方法返回的，比如DubboProtocol。
+ * 这里的Invoker和provider侧的不同，就是负责底层网络通讯
+ * 为什么对于一个rpc服务会有多个呢？因为每个rpc服务都可能有多个provider实例。
+ *
  * @see org.apache.dubbo.rpc.cluster.Cluster#join(Directory)
  */
 public interface Directory<T> extends Node {

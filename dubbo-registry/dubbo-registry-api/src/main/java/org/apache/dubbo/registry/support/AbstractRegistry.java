@@ -385,7 +385,6 @@ public abstract class AbstractRegistry implements Registry {
     }
 
     /**
-     * Notify changes from the Provider side.
      *
      * @param url      consumer side url
      * @param listener listener
